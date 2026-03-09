@@ -395,6 +395,7 @@
 
     .day-btn .day-name { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
     .day-btn .day-date { font-size: 13px; font-weight: 500; }
+    .day-btn .day-month { font-size: 9px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.05em; }
 
     .day-btn:hover { border-color: rgba(201,168,76,0.4); color: var(--text); }
 
@@ -774,10 +775,10 @@
   // ========================================================
   // CONFIG — à remplacer par les vraies valeurs
   // ========================================================
-  const FIREBASE_PROJECT = "agendalgbt-app"; // ton project ID Firebase
-  const FIREBASE_API_KEY = "VOTRE_CLE_API_FIREBASE"; // clé API Firebase web
-  const STRIPE_PUBLIC_KEY = "pk_live_VOTRE_CLE_STRIPE"; // clé publique Stripe
-  const BACKEND_URL = "https://votre-projet.vercel.app"; // URL de ton backend Vercel
+  const FIREBASE_PROJECT = "agendalgbt-app";
+  const FIREBASE_API_KEY = "AIzaSyBX793d9b70uGXH3E9m_zUt-zK6B6w61gM";
+  const STRIPE_PUBLIC_KEY = "pk_test_VOTRE_CLE_STRIPE"; // ← à remplacer
+  const BACKEND_URL = "https://agendalgbt-sponsor.vercel.app";
 
   // Grille tarifaire (stockée en dur ici, sera lue depuis Firestore en prod)
   const TARIFS = {
@@ -825,8 +826,11 @@
       for (const item of data) {
         if (!item.document) continue;
         const fields = item.document.fields || {};
+        const type = fields.type?.stringValue;
+        if (type !== 'event') continue;
         const dateStart = fields.date_start?.timestampValue ? new Date(fields.date_start.timestampValue) : null;
-        if (dateStart && dateStart < now) continue; // filtre événements passés
+        // Garder les événements futurs, et ceux sans date
+        if (dateStart && dateStart < now) continue;
         allEvents.push({
           id: item.document.name.split('/').pop(),
           name: fields.name?.stringValue || '—',
@@ -839,6 +843,7 @@
         });
       }
       allEvents.sort((a, b) => (a.dateStart || 0) - (b.dateStart || 0));
+      console.log(`✅ ${allEvents.length} événements futurs chargés`);
     } catch(e) {
       console.error("Erreur chargement Firebase:", e);
       // Démo : données fictives
@@ -854,13 +859,13 @@
   // AUDIENCE : calcul utilisateurs dans rayon 30km
   // ========================================================
   async function fetchAudience(lat, lng) {
-    if (!lat || !lng) return Math.floor(Math.random() * 800) + 100; // démo
+    if (!lat || !lng) return 0;
     try {
       const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents:runQuery?key=${FIREBASE_API_KEY}`;
-      const body = { structuredQuery: { from: [{ collectionId: "users" }], limit: 2000 } };
+      const body = { structuredQuery: { from: [{ collectionId: "users" }], limit: 5000 } };
       const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await resp.json();
-
+      if (!Array.isArray(data)) { console.error("Audience error:", data); return 0; }
       let count = 0;
       for (const item of data) {
         if (!item.document) continue;
@@ -870,9 +875,11 @@
         const d = haversine(lat, lng, loc.latitude, loc.longitude);
         if (d <= 30) count++;
       }
+      console.log(`👥 Audience calculée : ${count} utilisateurs`);
       return count;
     } catch(e) {
-      return Math.floor(Math.random() * 800) + 100;
+      console.error("Erreur audience:", e);
+      return 0;
     }
   }
 
@@ -970,9 +977,12 @@
       const weekend = isWeekend(key);
       const sel = selectedDays.has(key);
 
+      const monthName = d.toLocaleDateString('fr-FR', { month: 'short' });
+      const showMonth = (i === 0) || (d.getDate() === 1);
       const btn = document.createElement('button');
       btn.className = `day-btn${weekend ? ' weekend-day' : ''}${sel ? ' selected' : ''}`;
-      btn.innerHTML = `<span class="day-name">${dayName}</span><span class="day-date">${dayNum}</span>`;
+      btn.title = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+      btn.innerHTML = `<span class="day-name">${dayName}</span><span class="day-date">${dayNum}</span>${showMonth ? `<span class="day-month">${monthName}</span>` : ''}`;
       btn.onclick = () => toggleDay(key);
       grid.appendChild(btn);
     }
@@ -1117,9 +1127,10 @@
       const { url } = await resp.json();
       window.location.href = url; // Redirect to Stripe Checkout
     } catch(e) {
-      // Démo : simuler succès
-      console.error(e);
-      goStep('success');
+      console.error('Erreur paiement:', e);
+      btn.disabled = false;
+      btn.textContent = '💳 Payer via Stripe';
+      alert('Une erreur est survenue lors de la connexion au paiement. Veuillez réessayer.');
     }
   }
 
