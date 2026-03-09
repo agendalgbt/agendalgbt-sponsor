@@ -1,9 +1,6 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/public/sponsor.html" },
-    { "source": "/sponsor", "destination": "/public/sponsor.html" },
-    { "source": "/success", "destination": "/public/success.html" },
-    { "source": "/api/(.*)", "destination": "/api/$1" }
+    { "source": "/", "destination": "/sponsor.html" }
   ],
   "headers": [
     {
