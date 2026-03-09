@@ -851,6 +851,1051 @@
   async function fetchAudience(lat, lng) {
     if (!lat || !lng) return 0;
     try {
+      // Appel à notre API Vercel qui a accès Firebase Admin (pas de restriction auth)
+      const resp = await fetch(`${BACKEND_URL}/api/audience?lat=${lat}&lng=${lng}`);
+      const data = await resp.json();
+      console.log(`👥 Audience calculée : ${data.count} utilisateurs`);
+      return data.count || 0;
+    } catch(e) {
+      console.error("Erreur audience:", e);
+      return 0;
+    }
+  }
+
+  function haversine(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  // ========================================================
+  // TARIFICATION
+  // ========================================================
+  function getTier(audience) {
+    if (audience < 200) return TARIFS.tier1;
+    if (audience < 500) return TARIFS.tier2;
+    if (audience < 1000) return TARIFS.tier3;
+    return TARIFS.tier4;
+  }
+
+  function isWeekend(dateStr) {
+    const d = new Date(dateStr);
+    return d.getDay() === 5 || d.getDay() === 6; // vendredi ou samedi
+  }
+
+  function calcTotal() {
+    const tier = getTier(audienceCount);
+    let total = 0;
+    let normalDays = [], weekendDays = [];
+    for (const d of selectedDays) {
+      if (isWeekend(d)) { weekendDays.push(d); total += tier.weekend; }
+      else { normalDays.push(d); total += tier.normal; }
+    }
+    return { total: Math.round(total * 100) / 100, tier, normalDays, weekendDays };
+  }
+
+  // ========================================================
+  // UI — SEARCH
+  // ========================================================
+  function onSearch(query) {
+    const q = query.toLowerCase().trim();
+    const container = document.getElementById('search-results');
+
+    if (!q) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">🎉</div><p>Tapez le nom de votre événement pour le retrouver.</p></div>`;
+      return;
+    }
+
+    const filtered = allEvents.filter(e =>
+      e.name.toLowerCase().includes(q) || e.address.toLowerCase().includes(q) || e.category.toLowerCase().includes(q)
+    ).slice(0, 6);
+
+    if (!filtered.length) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>Aucun événement trouvé.<br>Vérifiez que votre événement est bien publié sur l'application.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(e => `
+      <div class="event-card ${selectedEvent?.id === e.id ? 'selected' : ''}" onclick="selectEvent('${e.id}')">
+        <div class="event-img">${e.cover ? `<img src="${e.cover}" style="width:100%;height:100%;border-radius:10px;object-fit:cover">` : '🎪'}</div>
+        <div class="event-info">
+          <div class="event-name">${e.name}</div>
+          <div class="event-meta">
+            <span>🏷️ ${e.category}</span>
+            <span>📍 ${e.address.split(',').slice(-1)[0]?.trim() || e.address}</span>
+            ${e.dateStart ? `<span>📅 ${e.dateStart.toLocaleDateString('fr-FR', {day:'numeric', month:'short'})}</span>` : ''}
+          </div>
+        </div>
+        <div class="check-mark">${selectedEvent?.id === e.id ? '✓' : ''}</div>
+      </div>
+    `).join('');
+  }
+
+  function selectEvent(id) {
+    selectedEvent = allEvents.find(e => e.id === id);
+    document.getElementById('btn-step1').disabled = false;
+    onSearch(document.getElementById('search-input').value);
+  }
+
+  // ========================================================
+  // UI — DAYS GRID
+  // ========================================================
+  function buildDaysGrid() {
+    const grid = document.getElementById('days-grid');
+    const today = new Date();
+    grid.innerHTML = '';
+
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      const dayName = d.toLocaleDateString('fr-FR', { weekday: 'short' }).slice(0, 3);
+      const dayNum = d.getDate();
+      const weekend = isWeekend(key);
+      const sel = selectedDays.has(key);
+
+      const monthName = d.toLocaleDateString('fr-FR', { month: 'short' });
+      const showMonth = (i === 0) || (d.getDate() === 1);
+      const btn = document.createElement('button');
+      btn.className = `day-btn${weekend ? ' weekend-day' : ''}${sel ? ' selected' : ''}`;
+      btn.title = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+      btn.innerHTML = `<span class="day-name">${dayName}</span><span class="day-date">${dayNum}</span>${showMonth ? `<span class="day-month">${monthName}</span>` : ''}`;
+      btn.onclick = () => toggleDay(key);
+      grid.appendChild(btn);
+    }
+  }
+
+  function toggleDay(key) {
+    if (selectedDays.has(key)) selectedDays.delete(key);
+    else selectedDays.add(key);
+    buildDaysGrid();
+    updatePricing();
+  }
+
+  function updatePricing() {
+    const count = selectedDays.size;
+    const minOk = count >= 3;
+    document.getElementById('btn-step2').disabled = !minOk;
+    document.getElementById('min-info').textContent = minOk
+      ? `${count} jour${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''}`
+      : `Sélectionnez au moins 3 jours (${count}/3)`;
+
+    if (!count) {
+      document.getElementById('pricing-breakdown').innerHTML = '';
+      document.getElementById('tarif-badges').innerHTML = '';
+      return;
+    }
+
+    const { total, tier, normalDays, weekendDays } = calcTotal();
+
+    document.getElementById('tarif-badges').innerHTML = `
+      <div class="tarif-badge">Tarif normal : <strong>${tier.normal}€/j</strong></div>
+      <div class="tarif-badge">Vendredi & Samedi : <strong>${tier.weekend}€/j</strong></div>
+      <div class="tarif-badge">Audience : <strong>${audienceCount} utilisateurs</strong></div>
+    `;
+
+    let rows = '';
+    if (normalDays.length) rows += `<div class="pricing-row"><span class="label">${normalDays.length} jour${normalDays.length > 1 ? 's' : ''} (lun–jeu)</span><span class="value">${(normalDays.length * tier.normal).toFixed(2)} €</span></div>`;
+    if (weekendDays.length) rows += `<div class="pricing-row"><span class="label">${weekendDays.length} vendredi/samedi</span><span class="value">${(weekendDays.length * tier.weekend).toFixed(2)} €</span></div>`;
+    rows += `<div class="pricing-row total"><span class="label">Total HT</span><span class="value">${total.toFixed(2)} €</span></div>`;
+
+    document.getElementById('pricing-breakdown').innerHTML = rows;
+  }
+
+  // ========================================================
+  // UI — NAVIGATION
+  // ========================================================
+  function goStep(n) {
+    // Cas succès
+    if (n === 'success') {
+      document.getElementById(`section-${currentStep}`)?.classList.remove('active');
+      document.getElementById('section-success').classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    document.getElementById(`section-${currentStep}`)?.classList.remove('active');
+    currentStep = n;
+    document.getElementById(`section-${n}`)?.classList.add('active');
+
+    // Update steps bar
+    for (let i = 1; i <= 3; i++) {
+      const num = document.getElementById(`step-num-${i}`);
+      const lbl = document.getElementById(`step-label-${i}`);
+      if (!num || !lbl) continue;
+      if (i < n) { num.classList.add('active'); lbl.classList.add('active'); num.textContent = '✓'; }
+      else if (i === n) { num.classList.add('active'); lbl.classList.add('active'); num.textContent = i; }
+      else { num.classList.remove('active'); lbl.classList.remove('active'); num.textContent = i; }
+    }
+
+    if (n === 2) { buildSelectedRecap(); buildDaysGrid(); updatePricing(); loadAudience(); }
+    if (n === 3) buildRecap();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function loadAudience() {
+    document.getElementById('audience-num').textContent = '…';
+    audienceCount = await fetchAudience(selectedEvent?.lat, selectedEvent?.lng);
+    document.getElementById('audience-num').textContent = audienceCount.toLocaleString('fr-FR');
+    updatePricing();
+  }
+
+  function buildSelectedRecap() {
+    const e = selectedEvent;
+    document.getElementById('selected-recap').innerHTML = `
+      <div class="event-img">${e.cover ? `<img src="${e.cover}" style="width:100%;height:100%;border-radius:10px;object-fit:cover">` : '🎪'}</div>
+      <div class="event-info">
+        <div class="event-name">${e.name}</div>
+        <div class="event-meta"><span>📍 ${e.address}</span></div>
+      </div>
+      <button class="change-btn" onclick="goStep(1)">Changer</button>
+    `;
+  }
+
+  function buildRecap() {
+    const { total, tier, normalDays, weekendDays } = calcTotal();
+    const sortedDays = [...selectedDays].sort();
+
+    document.getElementById('recap-content').innerHTML = `
+      <div class="selected-recap" style="margin-bottom:20px;">
+        <div class="event-img">${selectedEvent.cover ? `<img src="${selectedEvent.cover}" style="width:100%;height:100%;border-radius:10px;object-fit:cover">` : '🎪'}</div>
+        <div class="event-info">
+          <div class="event-name">${selectedEvent.name}</div>
+          <div class="event-meta">
+            <span>📅 ${sortedDays.length} jours · du ${new Date(sortedDays[0]).toLocaleDateString('fr-FR')} au ${new Date(sortedDays[sortedDays.length-1]).toLocaleDateString('fr-FR')}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    let rows = '';
+    if (normalDays.length) rows += `<div class="pricing-row"><span class="label">${normalDays.length} jour${normalDays.length > 1 ? 's' : ''} (tarif normal · ${tier.normal}€/j)</span><span class="value">${(normalDays.length * tier.normal).toFixed(2)} €</span></div>`;
+    if (weekendDays.length) rows += `<div class="pricing-row"><span class="label">${weekendDays.length} vendredi/samedi (${tier.weekend}€/j)</span><span class="value">${(weekendDays.length * tier.weekend).toFixed(2)} €</span></div>`;
+    rows += `<div class="pricing-row total"><span class="label">Total HT</span><span class="value">${total.toFixed(2)} €</span></div>`;
+    document.getElementById('recap-pricing').innerHTML = rows;
+  }
+
+  // ========================================================
+  // STRIPE
+  // ========================================================
+  async function proceedToStripe() {
+    const btn = document.getElementById('btn-pay');
+    btn.disabled = true;
+    btn.textContent = '⏳ Redirection…';
+
+    const { total } = calcTotal();
+    const sortedDays = [...selectedDays].sort();
+
+    try {
+      // Appel au backend Vercel pour créer une session Stripe Checkout
+      const resp = await fetch(`${BACKEND_URL}/api/create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId: selectedEvent.id,
+          eventName: selectedEvent.name,
+          days: sortedDays,
+          amount: Math.round(total * 100), // en centimes
+        })
+      });
+
+      const { url } = await resp.json();
+      window.location.href = url; // Redirect to Stripe Checkout
+    } catch(e) {
+      console.error('Erreur paiement:', e);
+      btn.disabled = false;
+      btn.textContent = '💳 Payer via Stripe';
+      alert('Une erreur est survenue lors de la connexion au paiement. Veuillez réessayer.');
+    }
+  }
+
+  // ========================================================
+  // INIT
+  // ========================================================
+  loadEvents();
+</script>
+
+</body>
+</html>    /* HERO */
+    .hero {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 64px 24px 48px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(201,168,76,0.1);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 18px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(38px, 6vw, 70px);
+      font-weight: 300;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--gold-light);
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* STEPS */
+    .steps {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      max-width: 700px;
+      margin: 0 auto 56px;
+      padding: 0 24px;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+    }
+
+    .step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: calc(50% + 16px);
+      right: calc(-50% + 16px);
+      height: 1px;
+      background: linear-gradient(to right, var(--border), transparent);
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--gold);
+      margin-bottom: 8px;
+      background: var(--bg2);
+    }
+
+    .step-num.active {
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      color: var(--bg);
+      border: none;
+      font-weight: 500;
+    }
+
+    .step-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      letter-spacing: 0.05em;
+    }
+
+    .step-label.active { color: var(--text); }
+
+    /* MAIN CARD */
+    .container {
+      position: relative;
+      z-index: 10;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .card-section {
+      padding: 36px 40px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: none;
+    }
+
+    .card-section.active { display: block; }
+
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 400;
+      margin-bottom: 6px;
+    }
+
+    .section-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    /* SEARCH */
+    .search-wrap {
+      position: relative;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius);
+      padding: 16px 20px 16px 48px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-wrap input:focus {
+      border-color: var(--gold);
+    }
+
+    .search-wrap input::placeholder { color: var(--text-muted); }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+
+    .search-results {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .event-card {
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .event-card:hover, .event-card.selected {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.06);
+    }
+
+    .event-img {
+      width: 56px;
+      height: 56px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: var(--bg);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .event-info { flex: 1; }
+
+    .event-name {
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .event-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 12px;
+    }
+
+    .event-meta span { display: flex; align-items: center; gap: 4px; }
+
+    .check-mark {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .event-card.selected .check-mark {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--bg);
+    }
+
+    /* AUDIENCE STAT */
+    .audience-box {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .audience-icon {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, rgba(232,96,154,0.2), rgba(201,168,76,0.2));
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .audience-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 42px;
+      font-weight: 600;
+      color: var(--gold-light);
+      line-height: 1;
+    }
+
+    .audience-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* DAYS PICKER */
+    .days-label {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .day-btn {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--bg3);
+      color: var(--text-muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .day-btn .day-name { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .day-btn .day-date { font-size: 13px; font-weight: 500; }
+    .day-btn .day-month { font-size: 9px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .day-btn:hover { border-color: rgba(201,168,76,0.4); color: var(--text); }
+
+    .day-btn.selected {
+      background: rgba(201,168,76,0.12);
+      border-color: var(--gold);
+      color: var(--gold-light);
+    }
+
+    .day-btn.weekend-day { position: relative; }
+    .day-btn.weekend-day::after {
+      content: '+30%';
+      position: absolute;
+      top: -8px;
+      right: -4px;
+      background: var(--pink);
+      color: white;
+      font-size: 8px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+
+    /* PRICING */
+    .pricing-breakdown {
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .pricing-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .pricing-row:last-child { border-bottom: none; }
+    .pricing-row .label { color: var(--text-muted); }
+    .pricing-row .value { font-weight: 500; }
+    .pricing-row.total {
+      background: rgba(201,168,76,0.06);
+      padding: 18px 20px;
+    }
+
+    .pricing-row.total .label {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      color: var(--text);
+    }
+
+    .pricing-row.total .value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      color: var(--gold-light);
+    }
+
+    .tarif-info {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .tarif-badge {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .tarif-badge strong { color: var(--text); }
+
+    /* SELECTED EVENT RECAP */
+    .selected-recap {
+      background: rgba(201,168,76,0.06);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .selected-recap .event-img { width: 44px; height: 44px; font-size: 18px; }
+    .change-btn {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+    }
+    .change-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    /* BUTTONS */
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius);
+      padding: 18px 32px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+    .btn-secondary {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: var(--radius);
+      padding: 14px 24px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-row .btn-secondary { flex-shrink: 0; }
+    .btn-row .btn-primary { flex: 1; }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+
+    /* LOADING */
+    .loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 14px;
+      padding: 20px 0;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(201,168,76,0.2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* SUCCESS */
+    .success-section {
+      text-align: center;
+      padding: 56px 40px;
+    }
+
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 24px;
+      animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes pop {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .success-section h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 32px;
+      font-weight: 400;
+      margin-bottom: 12px;
+    }
+
+    .success-section p {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.7;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    /* FOOTER */
+    footer {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 0 24px 40px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    footer a { color: var(--gold); text-decoration: none; }
+
+    /* MIN DAYS INFO */
+    .min-info {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: -20px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 24px 20px 0; }
+      .card-section { padding: 28px 24px; }
+      .days-grid { grid-template-columns: repeat(7, 1fr); gap: 5px; }
+      .day-btn { font-size: 10px; }
+      .day-btn .day-date { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">🏳️‍🌈</div>
+  <div class="logo-text">Agenda<span>LGBT</span></div>
+</header>
+
+<div class="hero">
+  <div class="hero-badge">✦ Espace organisateurs</div>
+  <h1>Mettez votre événement<br><em>en avant</em></h1>
+  <p>Touchez une audience ciblée et engagée. Votre événement apparaît en tête de l'application, directement dans la zone géographique de vos participants.</p>
+</div>
+
+<div class="steps" id="steps-bar">
+  <div class="step">
+    <div class="step-num active" id="step-num-1">1</div>
+    <div class="step-label active" id="step-label-1">Événement</div>
+  </div>
+  <div class="step">
+    <div class="step-num" id="step-num-2">2</div>
+    <div class="step-label" id="step-label-2">Dates</div>
+  </div>
+  <div class="step">
+    <div class="step-num" id="step-num-3">3</div>
+    <div class="step-label" id="step-label-3">Paiement</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card">
+
+    <!-- STEP 1 : Sélection événement -->
+    <div class="card-section active" id="section-1">
+      <div class="section-title">Quel événement souhaitez-vous promouvoir ?</div>
+      <div class="section-sub">Recherchez votre événement parmi ceux déjà publiés sur l'application.</div>
+
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Nom de l'événement, ville…" oninput="onSearch(this.value)" />
+      </div>
+
+      <div class="search-results" id="search-results">
+        <div class="empty-state">
+          <div class="icon">🎉</div>
+          <p>Tapez le nom de votre événement<br>pour le retrouver.</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px;">
+        <button class="btn-primary" id="btn-step1" onclick="goStep(2)" disabled>
+          Continuer →
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2 : Sélection dates + tarif -->
+    <div class="card-section" id="section-2">
+      <div class="section-title">Choisissez vos dates de mise en avant</div>
+      <div class="section-sub">Sélectionnez les jours où votre événement apparaîtra en première position. Minimum 3 jours.</div>
+
+      <div class="selected-recap" id="selected-recap"></div>
+
+      <div class="audience-box">
+        <div class="audience-icon">👥</div>
+        <div>
+          <div class="audience-num" id="audience-num">—</div>
+          <div class="audience-label">utilisateurs potentiellement touchés (rayon 30 km)</div>
+        </div>
+      </div>
+
+      <div class="days-label">Sélectionnez vos jours (les 30 prochains jours) :</div>
+      <div class="days-grid" id="days-grid"></div>
+      <div class="min-info" id="min-info">Sélectionnez au moins 3 jours.</div>
+
+      <div class="tarif-info" id="tarif-badges"></div>
+
+      <div class="pricing-breakdown" id="pricing-breakdown"></div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goStep(1)">← Retour</button>
+        <button class="btn-primary" id="btn-step2" onclick="goStep(3)" disabled>Procéder au paiement →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 : Récap + Paiement -->
+    <div class="card-section" id="section-3">
+      <div class="section-title">Récapitulatif & paiement</div>
+      <div class="section-sub">Vérifiez votre commande avant de procéder au paiement sécurisé.</div>
+
+      <div id="recap-content"></div>
+
+      <div class="pricing-breakdown" id="recap-pricing"></div>
+
+      <div style="margin-top: 24px; margin-bottom: 16px;">
+        <button class="btn-primary" id="btn-pay" onclick="proceedToStripe()">
+          💳 Payer via Stripe
+        </button>
+      </div>
+      <div style="text-align:center;">
+        <button class="btn-secondary" onclick="goStep(2)" style="width:auto; padding: 10px 20px;">← Modifier</button>
+      </div>
+
+      <div style="margin-top: 20px; text-align:center; font-size:12px; color: var(--text-muted); line-height:1.6;">
+        🔒 Paiement sécurisé par Stripe · Vos données bancaires ne transitent jamais par nos serveurs
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="card-section" id="section-success">
+      <div class="success-section">
+        <div class="success-icon">✓</div>
+        <h2>Votre sponsorisation est active !</h2>
+        <p>Votre événement apparaîtra en tête de l'application dès maintenant et jusqu'à la dernière date sélectionnée. Un email de confirmation vous a été envoyé.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <p>© 2025 AgendaLGBT · <a href="#">Conditions générales</a> · <a href="#">Contact</a></p>
+</footer>
+
+<script>
+  // ========================================================
+  // CONFIG — à remplacer par les vraies valeurs
+  // ========================================================
+  const FIREBASE_PROJECT = "agendalgbt-app";
+  const FIREBASE_API_KEY = "AIzaSyBX793d9b70uGXH3E9m_zUt-zK6B6w61gM";
+  const STRIPE_PUBLIC_KEY = "pk_test_VOTRE_CLE_STRIPE"; // ← à remplacer
+  const BACKEND_URL = "https://agendalgbt-sponsor.vercel.app";
+
+  // Grille tarifaire (stockée en dur ici, sera lue depuis Firestore en prod)
+  const TARIFS = {
+    tier1: { max: 200,  normal: 5,  weekend: 6.5  },
+    tier2: { max: 500,  normal: 10, weekend: 13   },
+    tier3: { max: 1000, normal: 18, weekend: 23.5 },
+    tier4: { max: Infinity, normal: 25, weekend: 32.5 },
+  };
+
+  // ========================================================
+  // STATE
+  // ========================================================
+  let currentStep = 1;
+  let selectedEvent = null;
+  let selectedDays = new Set(); // clés "YYYY-MM-DD"
+  let audienceCount = 0;
+  let allEvents = [];
+
+  // ========================================================
+  // FIREBASE — chargement des événements futurs
+  // ========================================================
+  async function loadEvents() {
+    try {
+      // Chargement avec pagination pour récupérer tous les documents
+      allEvents = [];
+      const now = new Date();
+      let pageToken = '';
+
+      do {
+        const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/activities?key=${FIREBASE_API_KEY}&pageSize=300${pageToken ? '&pageToken=' + pageToken : ''}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (!data.documents) {
+          console.error("Pas de documents:", data);
+          break;
+        }
+
+        for (const doc of data.documents) {
+          const fields = doc.fields || {};
+          const type = fields.type?.stringValue;
+          if (type !== 'event') continue;
+          const dateStart = fields.date_start?.timestampValue ? new Date(fields.date_start.timestampValue) : null;
+          if (dateStart && dateStart < now) continue;
+          allEvents.push({
+            id: doc.name.split('/').pop(),
+            name: fields.name?.stringValue || '—',
+            address: fields.address?.stringValue || '',
+            category: fields.category?.stringValue || '',
+            cover: fields.cover_image?.stringValue || '',
+            dateStart: dateStart,
+            lat: fields.location?.geoPointValue?.latitude || null,
+            lng: fields.location?.geoPointValue?.longitude || null,
+          });
+        }
+
+        pageToken = data.nextPageToken || '';
+      } while (pageToken);
+
+      allEvents.sort((a, b) => (a.dateStart || 0) - (b.dateStart || 0));
+      console.log(`✅ ${allEvents.length} événements futurs chargés`);
+    } catch(e) {
+      console.error("Erreur chargement Firebase:", e);
+    }
+  }
+
+  // ========================================================
+  // AUDIENCE : calcul utilisateurs dans rayon 30km
+  // ========================================================
+  async function fetchAudience(lat, lng) {
+    if (!lat || !lng) return 0;
+    try {
       const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents:runQuery?key=${FIREBASE_API_KEY}`;
       const body = { structuredQuery: { from: [{ collectionId: "users" }], limit: 5000 } };
       const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
