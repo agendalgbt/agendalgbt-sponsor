@@ -3,6 +3,15 @@ const admin = require('firebase-admin');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Augmenter la limite bodyParser pour les uploads base64
+module.exports.config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+  },
+};
+
 // Initialiser Firebase Admin (une seule fois)
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -39,8 +48,8 @@ module.exports = async function handler(req, res) {
       storyDates,
       postDate,
       datesPublication,
-      postFileBase64,
-      storyFiles,
+      postFileUrl,
+      storyUrls,
       amount,
     } = req.body;
 
@@ -49,43 +58,8 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Paramètres manquants' });
     }
 
-    // Helper upload Firebase Storage
-    async function uploadFile(base64, contentType, filename) {
-      const bucket = admin.storage().bucket();
-      const fileBuffer = Buffer.from(base64, 'base64');
-      const file = bucket.file(filename);
-      const token = require('crypto').randomUUID();
-      await file.save(fileBuffer, {
-        metadata: { contentType, metadata: { firebaseStorageDownloadTokens: token } },
-      });
-      const encoded = encodeURIComponent(filename);
-      return `https://firebasestorage.googleapis.com/v0/b/agendalgbt-app.firebasestorage.app/o/${encoded}?alt=media&token=${token}`;
-    }
-
-    const slug = eventName.replace(/\s+/g, '_').toLowerCase();
-    const ts   = Date.now();
-
-    // Upload visuel Post Feed
-    let postFileUrl = null;
-    if (postFileBase64) {
-      try {
-        postFileUrl = await uploadFile(postFileBase64, 'image/jpeg', `instagram_sponsorships/${ts}_${slug}_post.jpg`);
-      } catch (err) { console.warn('Upload post échoué:', err.message); }
-    }
-
-    // Upload visuels/vidéos Stories
-    const storyUrls = [];
-    if (storyFiles && storyFiles.length > 0) {
-      for (let i = 0; i < storyFiles.length; i++) {
-        const sf = storyFiles[i];
-        if (!sf || !sf.base64) continue;
-        try {
-          const ext = sf.type && sf.type.startsWith('video/') ? 'mp4' : 'jpg';
-          const url = await uploadFile(sf.base64, sf.type || 'image/jpeg', `instagram_sponsorships/${ts}_${slug}_story${i+1}.${ext}`);
-          storyUrls.push(url);
-        } catch (err) { console.warn(`Upload story ${i+1} échoué:`, err.message); }
-      }
-    }
+    // Les fichiers sont déjà uploadés côté client vers Firebase Storage
+    // postFileUrl et storyUrls contiennent les URLs directement
 
     // Dates de publication formatées
     const sortedDays = [...datesPublication].sort();
@@ -127,7 +101,7 @@ module.exports = async function handler(req, res) {
         postDate:         postDate || '',
         datesPublication: JSON.stringify(sortedDays),
         postFileUrl:      postFileUrl || '',
-        storyUrls:        JSON.stringify(storyUrls),
+        storyUrls:        JSON.stringify(storyUrls || []),
         amount:           String(amount),
       },
     });
@@ -136,8 +110,8 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ url: session.url });
 
   } catch (error) {
-    console.error('Stripe error:', error);
+    console.error('Checkout instagram error:', error);
     res.setHeader('Access-Control-Allow-Origin', '*');
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message, stack: error.stack });
   }
 };
