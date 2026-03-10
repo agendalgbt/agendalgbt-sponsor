@@ -103,8 +103,11 @@ module.exports = async function handler(req, res) {
         eventDate,
         instaHandle,
         ticketLink:       ticketLink || '',
-        brief:            (brief || '').slice(0, 500), // limite Stripe metadata
+        brief:            (brief || '').slice(0, 500),
+        transferLink:     transferLink || '',
         customerEmail,
+        storyDates:       JSON.stringify(storyDates || []),
+        postDate:         postDate || '',
         datesPublication: JSON.stringify(sortedDays),
         afficheUrl:       afficheUrl || '',
         amount:           String(amount),
