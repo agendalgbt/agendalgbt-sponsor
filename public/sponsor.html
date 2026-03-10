@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sponsoriser mon événement — AgendaLGBT</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     :root {
       --bg: #0a0a0f;
@@ -25,7 +25,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-weight: 300;
       min-height: 100vh;
       overflow-x: hidden;
@@ -228,7 +228,7 @@
       border-radius: var(--radius);
       padding: 16px 20px 16px 48px;
       color: var(--text);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 15px;
       outline: none;
       transition: border-color 0.2s;
@@ -381,7 +381,7 @@
       border: 1px solid rgba(255,255,255,0.08);
       background: var(--bg3);
       color: var(--text-muted);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 12px;
       cursor: pointer;
       display: flex;
@@ -417,6 +417,30 @@
       padding: 2px 5px;
       border-radius: 999px;
       font-weight: 500;
+    }
+
+    .day-btn.event-day {
+      border-color: var(--pink);
+      background: rgba(232, 96, 154, 0.12);
+    }
+    .day-btn.event-day .day-name,
+    .day-btn.event-day .day-date {
+      color: var(--pink);
+      font-weight: 600;
+    }
+    .day-btn.event-day::before {
+      content: '★';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--pink);
+      color: white;
+      font-size: 8px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      font-weight: 600;
+      white-space: nowrap;
     }
 
     /* PRICING */
@@ -497,7 +521,7 @@
       border-radius: 8px;
       font-size: 12px;
       cursor: pointer;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       transition: all 0.2s;
     }
     .change-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
@@ -510,7 +534,7 @@
       border: none;
       border-radius: var(--radius);
       padding: 18px 32px;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 15px;
       font-weight: 500;
       cursor: pointer;
@@ -528,7 +552,7 @@
       color: var(--text-muted);
       border-radius: var(--radius);
       padding: 14px 24px;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 14px;
       cursor: pointer;
       transition: all 0.2s;
@@ -947,6 +971,11 @@
     const today = new Date();
     grid.innerHTML = '';
 
+    // Date de l'événement sélectionné (YYYY-MM-DD)
+    const eventDateKey = selectedEvent?.dateStart
+      ? selectedEvent.dateStart.toISOString().split('T')[0]
+      : null;
+
     for (let i = 0; i < 30; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
@@ -955,12 +984,13 @@
       const dayNum = d.getDate();
       const weekend = isWeekend(key);
       const sel = selectedDays.has(key);
+      const isEventDay = (key === eventDateKey);
 
       const monthName = d.toLocaleDateString('fr-FR', { month: 'short' });
       const showMonth = (i === 0) || (d.getDate() === 1);
       const btn = document.createElement('button');
-      btn.className = `day-btn${weekend ? ' weekend-day' : ''}${sel ? ' selected' : ''}`;
-      btn.title = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+      btn.className = `day-btn${weekend ? ' weekend-day' : ''}${sel ? ' selected' : ''}${isEventDay ? ' event-day' : ''}`;
+      btn.title = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + (isEventDay ? ' — Jour de votre événement' : '');
       btn.innerHTML = `<span class="day-name">${dayName}</span><span class="day-date">${dayNum}</span>${showMonth ? `<span class="day-month">${monthName}</span>` : ''}`;
       btn.onclick = () => toggleDay(key);
       grid.appendChild(btn);
