@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Réservation confirmée — AgendaLGBT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --gold: #c9a84c;
+      --gold-light: #e8c96a;
+      --pink: #e8609a;
+      --text: #f0ede8;
+      --text-muted: #8a8799;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,96,154,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 50% 100%, rgba(201,168,76,0.10) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .card {
+      position: relative;
+      z-index: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 20px;
+      padding: 56px 48px;
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+    }
+    .success-icon {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 28px;
+      animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    h1 { font-size: 32px; font-weight: 400; margin-bottom: 14px; }
+    p { color: var(--text-muted); font-size: 15px; line-height: 1.7; margin-bottom: 12px; }
+    .steps-recap {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin: 24px 0 32px;
+      text-align: left;
+    }
+    .steps-recap p {
+      font-size: 13px; color: var(--text-muted);
+      margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px;
+    }
+    .steps-recap p:last-child { margin-bottom: 0; }
+    .steps-recap p strong { color: var(--text); font-weight: 500; }
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      color: #0a0a0f;
+      border: none; border-radius: 12px;
+      padding: 14px 32px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="success-icon">✓</div>
+    <h1>Réservation confirmée !</h1>
+    <p>Votre demande de sponsorisation Instagram a bien été reçue et votre paiement est validé.</p>
+
+    <div class="steps-recap">
+      <p>📬 <span>Un <strong>email de confirmation</strong> vous a été envoyé.</span></p>
+      <p>📲 <span>Nous vous contacterons dans les <strong>24h</strong> pour valider les contenus avec vous.</span></p>
+      <p>📅 <span>Vos <strong>dates de publication sont réservées</strong> — elles n'apparaîtront plus comme disponibles.</span></p>
+    </div>
+
+    <a href="/instagram.html" class="btn">Sponsoriser un autre événement</a>
+  </div>
+</body>
+</html>
