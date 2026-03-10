@@ -50,8 +50,12 @@
       padding: 36px 48px 0;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 14px;
     }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .nav-link { font-size: 13px; color: var(--text-muted); text-decoration: none; border: 1px solid var(--border); border-radius: 999px; padding: 7px 18px; transition: color 0.2s, border-color 0.2s; }
+    .nav-link:hover { color: var(--gold); border-color: var(--gold); }
 
     .logo-mark {
       width: 38px;
@@ -675,8 +679,11 @@
 <body>
 
 <header>
-  <div class="logo-mark">🏳️‍🌈</div>
-  <div class="logo-text">Agenda<span>LGBT</span></div>
+  <div class="header-left">
+    <div class="logo-mark">🏳️‍🌈</div>
+    <div class="logo-text">Agenda<span>LGBT</span></div>
+  </div>
+  <a href="/index.html" class="nav-link">← Retour accueil</a>
 </header>
 
 <div class="hero">
