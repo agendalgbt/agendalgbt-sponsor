@@ -48,8 +48,6 @@ module.exports = async function handler(req, res) {
       storyDates,
       postDate,
       datesPublication,
-      postFileUrl,
-      storyUrls,
       amount,
     } = req.body;
 
@@ -57,9 +55,6 @@ module.exports = async function handler(req, res) {
     if (!pack || !eventName || !eventDate || !instaHandle || !customerEmail || !datesPublication || !amount) {
       return res.status(400).json({ error: 'Paramètres manquants' });
     }
-
-    // Les fichiers sont déjà uploadés côté client vers Firebase Storage
-    // postFileUrl et storyUrls contiennent les URLs directement
 
     // Dates de publication formatées
     const sortedDays = [...datesPublication].sort();
@@ -100,8 +95,7 @@ module.exports = async function handler(req, res) {
         storyDates:       JSON.stringify(storyDates || []),
         postDate:         postDate || '',
         datesPublication: JSON.stringify(sortedDays),
-        postFileUrl:      postFileUrl || '',
-        storyUrls:        JSON.stringify(storyUrls || []),
+
         amount:           String(amount),
       },
     });
