@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Espace Organisateurs — AgendaLGBT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a26;
+      --gold: #c9a84c; --gold-light: #e8c96a;
+      --pink: #e8609a; --pink-light: #f090be;
+      --text: #f0ede8; --text-muted: #8a8799;
+      --border: rgba(201,168,76,0.18); --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', sans-serif; font-weight: 300;
+      min-height: 100vh; overflow-x: hidden;
+      display: flex; flex-direction: column;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 20% 0%, rgba(232,96,154,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(201,168,76,0.10) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+    header {
+      position: relative; z-index: 10;
+      padding: 36px 48px 0;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .logo-mark { width: 38px; height: 38px; background: linear-gradient(135deg, var(--pink), var(--gold)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .logo-text { font-size: 22px; font-weight: 600; letter-spacing: 0.02em; }
+    .logo-text span { color: var(--gold); }
+
+    .hero {
+      position: relative; z-index: 10;
+      text-align: center; padding: 72px 24px 56px; flex: 1;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(201,168,76,0.1); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px 18px;
+      font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 5vw, 64px); font-weight: 300;
+      line-height: 1.1; letter-spacing: -0.01em; margin-bottom: 16px;
+    }
+    .hero h1 em { font-style: italic; color: var(--gold-light); }
+    .hero p { font-size: 16px; color: var(--text-muted); max-width: 480px; margin: 0 auto 56px; line-height: 1.7; }
+
+    /* CARDS */
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+    .option-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px 32px;
+      text-decoration: none; color: var(--text);
+      display: flex; flex-direction: column; gap: 0;
+      transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .option-card::before {
+      content: ''; position: absolute; inset: 0; opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .option-card.card-app::before { background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.07) 0%, transparent 70%); }
+    .option-card.card-insta::before { background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,96,154,0.09) 0%, transparent 70%); }
+    .option-card:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+    .option-card.card-app:hover { border-color: rgba(201,168,76,0.45); }
+    .option-card.card-insta:hover { border-color: rgba(232,96,154,0.45); }
+    .option-card:hover::before { opacity: 1; }
+
+    .card-recommend {
+      position: absolute; top: 20px; right: 20px;
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      color: var(--bg); font-size: 10px; font-weight: 600;
+      padding: 4px 12px; border-radius: 999px; letter-spacing: 0.05em;
+    }
+
+    .card-icon { font-size: 42px; margin-bottom: 20px; }
+    .card-title { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+    .card-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 28px; }
+
+    .card-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; flex: 1; }
+    .card-features li { font-size: 13px; color: var(--text-muted); display: flex; align-items: flex-start; gap: 10px; line-height: 1.4; }
+    .card-features li .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+    .card-app .dot { background: var(--gold); }
+    .card-insta .dot { background: var(--pink); }
+
+    .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .card-price { font-size: 13px; color: var(--text-muted); }
+    .card-price strong { font-size: 20px; font-weight: 600; color: var(--text); display: block; }
+    .card-cta {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 22px; border-radius: 12px;
+      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;
+      border: none; cursor: pointer; transition: opacity 0.2s;
+      text-decoration: none;
+    }
+    .card-cta:hover { opacity: 0.85; }
+    .card-app .card-cta { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #0a0a0f; }
+    .card-insta .card-cta { background: linear-gradient(135deg, var(--pink), var(--pink-light)); color: #0a0a0f; }
+
+    /* SEPARATEUR */
+    .or-divider {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+      max-width: 820px; margin: 0 auto;
+      padding: 0 24px;
+      pointer-events: none;
+    }
+
+    footer {
+      position: relative; z-index: 10;
+      text-align: center; padding: 40px 32px 32px;
+      font-size: 13px; color: var(--text-muted);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      margin-top: 64px;
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--gold); }
+
+    @media (max-width: 640px) {
+      header { padding: 20px 20px 0; }
+      .cards { grid-template-columns: 1fr; }
+      .hero { padding: 48px 24px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">🏳️‍🌈</div>
+  <div class="logo-text">Agenda<span>LGBT</span></div>
+</header>
+
+<div class="hero">
+  <div class="hero-badge">✦ Espace Organisateurs</div>
+  <h1>Boostez votre événement<br><em>queer</em></h1>
+  <p>Choisissez votre canal de sponsorisation et touchez directement la communauté LGBTQIA+ parisienne.</p>
+
+  <div class="cards">
+
+    <!-- Card App -->
+    <a href="/sponsor.html" class="option-card card-app">
+      <div class="card-icon">📱</div>
+      <div class="card-title">Application AgendaLGBT</div>
+      <div class="card-sub">Votre événement mis en avant dans l'app, géolocalisé directement auprès de votre audience cible.</div>
+      <ul class="card-features">
+        <li><span class="dot"></span>Apparaît en tête des résultats de l'application</li>
+        <li><span class="dot"></span>Ciblage géographique — utilisateurs dans un rayon de 30 km</li>
+        <li><span class="dot"></span>Visible pendant toutes les dates sélectionnées</li>
+        <li><span class="dot"></span>Tarif dynamique selon votre audience réelle</li>
+      </ul>
+      <div class="card-footer">
+        <div class="card-price">
+          <strong>À partir de 3€</strong>
+          par jour
+        </div>
+        <span class="card-cta">Commencer →</span>
+      </div>
+    </a>
+
+    <!-- Card Instagram -->
+    <a href="/instagram.html" class="option-card card-insta">
+      <div class="card-recommend">⭐ Populaire</div>
+      <div class="card-icon">📸</div>
+      <div class="card-title">Instagram @agenda_lgbt</div>
+      <div class="card-sub">Stories et posts sponsorisés auprès de 21 900 abonnés engagés — audience 100% organique.</div>
+      <ul class="card-features">
+        <li><span class="dot"></span>~2 500 vues réelles par Story</li>
+        <li><span class="dot"></span>Audience 18–44 ans, Paris & IDF, CSP+</li>
+        <li><span class="dot"></span>Lien billetterie direct dans les Stories</li>
+        <li><span class="dot"></span>2 formules : Visibilité Express ou Sold Out</li>
+      </ul>
+      <div class="card-footer">
+        <div class="card-price">
+          <strong>À partir de 79€</strong>
+          HT par campagne
+        </div>
+        <span class="card-cta">Découvrir →</span>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<footer>
+  <p>© 2025 AgendaLGBT · <a href="#">Conditions générales</a> · <a href="#">Contact</a></p>
+</footer>
+
+</body>
+</html>
