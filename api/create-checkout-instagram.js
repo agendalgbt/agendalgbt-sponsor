@@ -39,7 +39,8 @@ module.exports = async function handler(req, res) {
       storyDates,
       postDate,
       datesPublication,
-      afficheBase64,
+      postFileBase64,
+      storyFiles,
       amount,
     } = req.body;
 
@@ -48,25 +49,41 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Paramètres manquants' });
     }
 
-    // Upload affiche dans Firebase Storage (si fournie)
-    let afficheUrl = null;
-    if (afficheBase64) {
+    // Helper upload Firebase Storage
+    async function uploadFile(base64, contentType, filename) {
+      const bucket = admin.storage().bucket();
+      const fileBuffer = Buffer.from(base64, 'base64');
+      const file = bucket.file(filename);
+      const token = require('crypto').randomUUID();
+      await file.save(fileBuffer, {
+        metadata: { contentType, metadata: { firebaseStorageDownloadTokens: token } },
+      });
+      const encoded = encodeURIComponent(filename);
+      return `https://firebasestorage.googleapis.com/v0/b/agendalgbt-app.firebasestorage.app/o/${encoded}?alt=media&token=${token}`;
+    }
+
+    const slug = eventName.replace(/\s+/g, '_').toLowerCase();
+    const ts   = Date.now();
+
+    // Upload visuel Post Feed
+    let postFileUrl = null;
+    if (postFileBase64) {
       try {
-        const bucket = admin.storage().bucket();
-        const filename = `instagram_sponsorships/${Date.now()}_${eventName.replace(/\s+/g, '_').toLowerCase()}.jpg`;
-        const fileBuffer = Buffer.from(afficheBase64, 'base64');
-        const file = bucket.file(filename);
-        const token = require('crypto').randomUUID();
-        await file.save(fileBuffer, {
-          metadata: {
-            contentType: 'image/jpeg',
-            metadata: { firebaseStorageDownloadTokens: token },
-          },
-        });
-        const encoded = encodeURIComponent(filename);
-        afficheUrl = `https://firebasestorage.googleapis.com/v0/b/agendalgbt-app.firebasestorage.app/o/${encoded}?alt=media&token=${token}`;
-      } catch (err) {
-        console.warn('Upload affiche échoué (non bloquant):', err.message);
+        postFileUrl = await uploadFile(postFileBase64, 'image/jpeg', `instagram_sponsorships/${ts}_${slug}_post.jpg`);
+      } catch (err) { console.warn('Upload post échoué:', err.message); }
+    }
+
+    // Upload visuels/vidéos Stories
+    const storyUrls = [];
+    if (storyFiles && storyFiles.length > 0) {
+      for (let i = 0; i < storyFiles.length; i++) {
+        const sf = storyFiles[i];
+        if (!sf || !sf.base64) continue;
+        try {
+          const ext = sf.type && sf.type.startsWith('video/') ? 'mp4' : 'jpg';
+          const url = await uploadFile(sf.base64, sf.type || 'image/jpeg', `instagram_sponsorships/${ts}_${slug}_story${i+1}.${ext}`);
+          storyUrls.push(url);
+        } catch (err) { console.warn(`Upload story ${i+1} échoué:`, err.message); }
       }
     }
 
@@ -109,7 +126,8 @@ module.exports = async function handler(req, res) {
         storyDates:       JSON.stringify(storyDates || []),
         postDate:         postDate || '',
         datesPublication: JSON.stringify(sortedDays),
-        afficheUrl:       afficheUrl || '',
+        postFileUrl:      postFileUrl || '',
+        storyUrls:        JSON.stringify(storyUrls),
         amount:           String(amount),
       },
     });
