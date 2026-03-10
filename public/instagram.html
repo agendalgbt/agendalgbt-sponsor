@@ -393,7 +393,7 @@
   document.getElementById('event-date').min = new Date().toISOString().split('T')[0];
 
   // ================================================================
-  // FIREBASE — dates réservées
+  // FIREBASE — dates réservées par type
   // ================================================================
   async function loadBookedDays() {
     try {
@@ -401,8 +401,10 @@
       const resp = await fetch(url);
       const data = await resp.json();
       (data.documents || []).forEach(doc => {
-        const key = doc.name.split('/').pop();
-        bookedDays.add(key);
+        const key    = doc.name.split('/').pop();
+        const fields = doc.fields || {};
+        if (fields.story?.booleanValue === true) bookedStoryDays.add(key);
+        if (fields.post?.booleanValue === true)  bookedPostDays.add(key);
       });
     } catch(e) { console.warn('Dates réservées non chargées:', e); }
   }
@@ -580,7 +582,7 @@
       const dayNum    = d.getDate();
       const showMonth = (i === 0) || (d.getDate() === 1);
       const monthName = d.toLocaleDateString('fr-FR', { month: 'short' });
-      const isBooked  = bookedDays.has(key);
+      const isBooked  = type === 'stories' ? bookedStoryDays.has(key) : bookedPostDays.has(key);
       const isEvtDay  = (key === eventDateKey);
 
       const isSelStory = storyDays.has(key);
