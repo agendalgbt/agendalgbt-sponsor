@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sponsorisation Instagram — AgendaLGBT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #12121a;
+      --bg3: #1a1a26;
+      --gold: #c9a84c;
+      --gold-light: #e8c96a;
+      --pink: #e8609a;
+      --pink-light: #f090be;
+      --text: #f0ede8;
+      --text-muted: #8a8799;
+      --border: rgba(201,168,76,0.18);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% -10%, rgba(232,96,154,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 110%, rgba(201,168,76,0.10) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* HEADER */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 36px 48px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 14px; }
+
+    .logo-mark {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo-text { font-size: 22px; font-weight: 600; letter-spacing: 0.02em; }
+    .logo-text span { color: var(--gold); }
+
+    .nav-link {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 18px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .nav-link:hover { color: var(--gold); border-color: var(--gold); }
+
+    /* HERO */
+    .hero {
+      position: relative; z-index: 10;
+      text-align: center;
+      padding: 64px 24px 48px;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(201,168,76,0.1);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 18px;
+      font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 5.5vw, 66px);
+      font-weight: 300;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 em { font-style: italic; color: var(--gold-light); }
+
+    .hero p {
+      font-size: 16px; color: var(--text-muted);
+      max-width: 520px; margin: 0 auto; line-height: 1.7;
+    }
+
+    /* STATS INSTAGRAM */
+    .stats-row {
+      position: relative; z-index: 10;
+      display: flex; justify-content: center; gap: 12px;
+      flex-wrap: wrap;
+      padding: 0 24px 52px;
+    }
+
+    .stat-chip {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 20px;
+      font-size: 13px;
+      display: flex; align-items: center; gap: 8px;
+      color: var(--text-muted);
+    }
+
+    .stat-chip strong { color: var(--text); font-weight: 500; }
+
+    /* STEPS */
+    .steps {
+      position: relative; z-index: 10;
+      display: flex; justify-content: center;
+      max-width: 700px; margin: 0 auto 56px;
+      padding: 0 24px;
+    }
+
+    .step {
+      display: flex; flex-direction: column; align-items: center;
+      flex: 1; position: relative;
+    }
+
+    .step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: calc(50% + 16px); right: calc(-50% + 16px);
+      height: 1px;
+      background: linear-gradient(to right, var(--border), transparent);
+    }
+
+    .step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: var(--gold);
+      margin-bottom: 8px; background: var(--bg2);
+    }
+
+    .step-num.active {
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      color: var(--bg); border: none; font-weight: 500;
+    }
+
+    .step-num.done {
+      background: rgba(40,167,69,0.2);
+      border-color: rgba(40,167,69,0.4);
+      color: #5cb85c;
+    }
+
+    .step-label { font-size: 11px; color: var(--text-muted); text-align: center; letter-spacing: 0.05em; }
+    .step-label.active { color: var(--text); }
+
+    /* CONTAINER */
+    .container {
+      position: relative; z-index: 10;
+      max-width: 760px; margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .card-section {
+      padding: 36px 40px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: none;
+    }
+
+    .card-section.active { display: block; }
+
+    .section-title {
+      font-size: 26px; font-weight: 400; margin-bottom: 6px;
+    }
+
+    .section-sub {
+      font-size: 14px; color: var(--text-muted);
+      margin-bottom: 28px; line-height: 1.6;
+    }
+
+    /* PACK CARDS */
+    .packs-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+
+    .pack-card {
+      background: var(--bg3);
+      border: 2px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .pack-card:hover { border-color: rgba(201,168,76,0.3); }
+
+    .pack-card.selected {
+      border-color: var(--pink);
+      background: rgba(232,96,154,0.06);
+    }
+
+    .pack-badge {
+      position: absolute;
+      top: -12px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      color: var(--bg);
+      font-size: 11px; font-weight: 600;
+      padding: 4px 14px; border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .pack-icon { font-size: 28px; margin-bottom: 12px; }
+
+    .pack-name {
+      font-size: 16px; font-weight: 600; margin-bottom: 4px;
+    }
+
+    .pack-tagline {
+      font-size: 12px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.5;
+    }
+
+    .pack-items {
+      list-style: none; display: flex; flex-direction: column; gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .pack-items li {
+      font-size: 13px; color: var(--text-muted);
+      display: flex; align-items: flex-start; gap: 8px; line-height: 1.4;
+    }
+
+    .pack-items li::before {
+      content: '✦';
+      color: var(--gold); font-size: 9px; margin-top: 3px; flex-shrink: 0;
+    }
+
+    .pack-price {
+      font-size: 28px; font-weight: 600; color: var(--text);
+    }
+
+    .pack-price span { font-size: 14px; font-weight: 300; color: var(--text-muted); }
+
+    .pack-check {
+      position: absolute; top: 16px; right: 16px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--pink);
+      display: none; align-items: center; justify-content: center;
+      font-size: 12px; color: white;
+    }
+
+    .pack-card.selected .pack-check { display: flex; }
+
+    /* FORM FIELDS */
+    .field { margin-bottom: 20px; }
+
+    .field label {
+      display: block; font-size: 13px; color: var(--text-muted);
+      margin-bottom: 8px; letter-spacing: 0.03em;
+    }
+
+    .field input, .field textarea, .field select {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px; font-weight: 300;
+      outline: none;
+      transition: border-color 0.2s;
+      resize: vertical;
+    }
+
+    .field input:focus, .field textarea:focus, .field select:focus {
+      border-color: var(--gold);
+    }
+
+    .field input::placeholder, .field textarea::placeholder { color: var(--text-muted); }
+
+    .fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* UPLOAD ZONE */
+    .upload-zone {
+      border: 2px dashed rgba(201,168,76,0.25);
+      border-radius: var(--radius);
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: var(--bg3);
+      position: relative;
+    }
+
+    .upload-zone:hover { border-color: var(--gold); background: rgba(201,168,76,0.04); }
+    .upload-zone.has-file { border-color: var(--pink); background: rgba(232,96,154,0.04); }
+
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+
+    .upload-icon { font-size: 32px; margin-bottom: 10px; }
+    .upload-label { font-size: 14px; color: var(--text-muted); }
+    .upload-label strong { color: var(--gold); }
+
+    #upload-preview {
+      max-width: 180px; border-radius: 10px; margin: 12px auto 0; display: none;
+    }
+
+    /* CALENDRIER */
+    .days-label {
+      font-size: 13px; color: var(--text-muted);
+      margin-bottom: 14px; letter-spacing: 0.03em;
+    }
+
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 7px;
+      margin-bottom: 24px;
+    }
+
+    .day-btn {
+      aspect-ratio: 1;
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px;
+      transition: all 0.15s;
+      position: relative;
+      padding: 4px 2px;
+    }
+
+    .day-btn .day-name { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .day-btn .day-date { font-size: 13px; font-weight: 500; }
+    .day-btn .day-month { font-size: 9px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .day-btn:hover:not(.booked) { border-color: rgba(201,168,76,0.4); color: var(--text); }
+
+    .day-btn.selected {
+      background: linear-gradient(135deg, rgba(232,96,154,0.3), rgba(201,168,76,0.2));
+      border-color: var(--pink);
+      color: var(--text);
+    }
+
+    .day-btn.booked {
+      opacity: 0.35;
+      cursor: not-allowed;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .day-btn.booked::after {
+      content: '✕';
+      position: absolute;
+      top: 2px; right: 4px;
+      font-size: 8px;
+      color: var(--text-muted);
+    }
+
+    /* RECAP */
+    .recap-box {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .recap-row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 14px;
+    }
+
+    .recap-row:last-child { border-bottom: none; }
+    .recap-label { color: var(--text-muted); }
+    .recap-value { color: var(--text); font-weight: 500; text-align: right; max-width: 60%; }
+
+    .recap-total {
+      background: rgba(201,168,76,0.07);
+      padding: 18px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .recap-total .label { font-size: 15px; font-weight: 500; }
+    .recap-total .value { font-size: 22px; font-weight: 600; color: var(--gold-light); }
+
+    /* BOUTONS */
+    .btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%;
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      color: #0a0a0f;
+      border: none; border-radius: var(--radius);
+      padding: 18px 32px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+      margin-top: 8px;
+    }
+
+    .btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: var(--radius);
+      padding: 13px 24px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px; cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    .btn-row {
+      display: flex; gap: 12px; align-items: center; margin-top: 8px;
+    }
+
+    /* SUCCESS */
+    .success-section {
+      text-align: center; padding: 56px 40px;
+    }
+
+    .success-icon {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, var(--pink), var(--gold));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 24px;
+      animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .success-section h2 { font-size: 28px; font-weight: 400; margin-bottom: 12px; }
+    .success-section p { color: var(--text-muted); font-size: 15px; line-height: 1.7; }
+
+    /* FOOTER */
+    footer {
+      position: relative; z-index: 10;
+      text-align: center;
+      padding: 32px;
+      font-size: 13px;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--gold); }
+
+    /* LOADING */
+    .loading-dots { display: inline-flex; gap: 5px; }
+    .loading-dots span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--gold);
+      animation: blink 1.2s infinite;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+    /* RESPONSIVE */
+    @media (max-width: 600px) {
+      header { padding: 20px 20px 0; }
+      .card-section { padding: 24px 20px; }
+      .packs-grid { grid-template-columns: 1fr; }
+      .fields-row { grid-template-columns: 1fr; }
+      .days-grid { grid-template-columns: repeat(7, 1fr); gap: 5px; }
+      .day-btn .day-date { font-size: 11px; }
+      .hero h1 { font-size: 34px; }
+      .stats-row { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="logo-mark">🏳️‍🌈</div>
+    <div class="logo-text">Agenda<span>LGBT</span></div>
+  </div>
+  <a href="/sponsor.html" class="nav-link">↗ Sponsorisation app</a>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">✦ Partenariat Instagram</div>
+  <h1>Touchez la communauté<br><em>queer parisienne</em></h1>
+  <p>Votre événement promu directement auprès de 21 900 abonnés engagés — une audience 100% organique et ciblée.</p>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-chip">📍 <strong>21 900+</strong> abonnés Paris & IDF</div>
+  <div class="stat-chip">👁️ <strong>~2 500</strong> vues réelles / Story</div>
+  <div class="stat-chip">🎯 <strong>18–44 ans</strong> CSP+ & Étudiants</div>
+  <div class="stat-chip">💬 <strong>Taux de réactivité</strong> record en DM</div>
+</div>
+
+<!-- STEPS -->
+<div class="steps" id="steps-bar">
+  <div class="step">
+    <div class="step-num active" id="step-num-1">1</div>
+    <div class="step-label active" id="step-label-1">Pack</div>
+  </div>
+  <div class="step">
+    <div class="step-num" id="step-num-2">2</div>
+    <div class="step-label" id="step-label-2">Infos</div>
+  </div>
+  <div class="step">
+    <div class="step-num" id="step-num-3">3</div>
+    <div class="step-label" id="step-label-3">Dates</div>
+  </div>
+  <div class="step">
+    <div class="step-num" id="step-num-4">4</div>
+    <div class="step-label" id="step-label-4">Paiement</div>
+  </div>
+</div>
+
+<!-- MAIN CARD -->
+<div class="container">
+  <div class="card">
+
+    <!-- ÉTAPE 1 — Choix du pack -->
+    <div class="card-section active" id="section-1">
+      <div class="section-title">Choisissez votre pack</div>
+      <div class="section-sub">Deux formules pour booster vos ventes et remplir votre événement.</div>
+
+      <div class="packs-grid">
+
+        <!-- Pack Express -->
+        <div class="pack-card" id="pack-express" onclick="selectPack('express')">
+          <div class="pack-check">✓</div>
+          <div class="pack-icon">⚡</div>
+          <div class="pack-name">Visibilité Express</div>
+          <div class="pack-tagline">Le boost idéal la semaine J–7 pour activer votre billetterie.</div>
+          <ul class="pack-items">
+            <li>2 Stories séquencées (Teasing + Rappel J–1 ou Jour J)</li>
+            <li>Lien direct vers votre billetterie (Sticker Link)</li>
+            <li>Mention dans l'Agenda Hebdomadaire (slide dédiée avec votre affiche)</li>
+          </ul>
+          <div class="pack-price">79€ <span>HT</span></div>
+        </div>
+
+        <!-- Pack Sold Out -->
+        <div class="pack-card" id="pack-soldout" onclick="selectPack('soldout')">
+          <div class="pack-badge">⭐ Recommandé</div>
+          <div class="pack-check">✓</div>
+          <div class="pack-icon">🔥</div>
+          <div class="pack-name">Sold Out</div>
+          <div class="pack-tagline">La stratégie complète pour ancrer votre événement et saturer les ventes.</div>
+          <ul class="pack-items">
+            <li>1 Post Feed permanent — visuel affiche + copywriting persuasif</li>
+            <li>3 Stories réparties — annonce ouverture, rappel mid-week, dernier appel</li>
+            <li>Mise en avant "Coup de Cœur" dans l'agenda (top position)</li>
+            <li>Mention dans l'Agenda Hebdomadaire (slide dédiée avec votre affiche)</li>
+            <li>Lien billetterie permanent en bio pendant 24h le Jour J</li>
+          </ul>
+          <div class="pack-price">129€ <span>HT</span></div>
+        </div>
+
+      </div>
+
+      <div style="margin-top: 28px;">
+        <button class="btn-primary" id="btn-step1" onclick="goStep(2)" disabled>
+          Continuer →
+        </button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 2 — Infos événement -->
+    <div class="card-section" id="section-2">
+      <div class="section-title">Votre événement</div>
+      <div class="section-sub">Ces informations nous permettent de créer un contenu sur-mesure pour votre événement.</div>
+
+      <div class="fields-row">
+        <div class="field">
+          <label>Nom de l'événement *</label>
+          <input type="text" id="event-name" placeholder="Ex : La Fierce — Printemps Edition" />
+        </div>
+        <div class="field">
+          <label>Date de l'événement *</label>
+          <input type="date" id="event-date" />
+        </div>
+      </div>
+
+      <div class="fields-row">
+        <div class="field">
+          <label>Votre compte Instagram *</label>
+          <input type="text" id="insta-handle" placeholder="@votre_compte" />
+        </div>
+        <div class="field">
+          <label>Lien billetterie</label>
+          <input type="url" id="ticket-link" placeholder="https://shotgun.live/..." />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Brief / message clé à faire passer</label>
+        <textarea id="brief" rows="3" placeholder="Ex : Mettre en avant la date limite early bird, ambiance clubbing queer, DJ resident..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Affiche de l'événement * <span style="color:var(--text-muted);font-weight:300">(JPG ou PNG, max 10 Mo)</span></label>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="affiche-input" accept="image/jpeg,image/png,image/webp" onchange="handleFileSelect(this)" />
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-label">Glissez votre affiche ici ou <strong>cliquez pour choisir</strong></div>
+          <img id="upload-preview" alt="Aperçu affiche" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Votre email *</label>
+        <input type="email" id="customer-email" placeholder="contact@votreevénement.fr" />
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goStep(1)">← Retour</button>
+        <button class="btn-primary" style="flex:1" onclick="validateStep2()">Continuer →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 3 — Dates de publication -->
+    <div class="card-section" id="section-3">
+      <div class="section-title">Dates de publication</div>
+      <div class="section-sub" id="dates-sub">Choisissez quand vous souhaitez que vos contenus soient publiés.</div>
+
+      <div class="days-label" id="days-label">Sélectionnez vos dates (60 prochains jours) — <span style="color:var(--pink)">■</span> déjà réservé :</div>
+      <div class="days-grid" id="days-grid"></div>
+
+      <div id="dates-hint" style="font-size:13px;color:var(--text-muted);margin-bottom:20px;display:none;"></div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goStep(2)">← Retour</button>
+        <button class="btn-primary" style="flex:1" id="btn-step3" onclick="goStep(4)" disabled>Continuer →</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 4 — Récap + Paiement -->
+    <div class="card-section" id="section-4">
+      <div class="section-title">Récapitulatif & Paiement</div>
+      <div class="section-sub">Vérifiez votre commande avant de procéder au paiement sécurisé.</div>
+
+      <div class="recap-box" id="recap-box"></div>
+
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;line-height:1.6">
+        En procédant au paiement, vous acceptez nos <a href="#" style="color:var(--gold)">conditions générales</a>. Votre réservation sera confirmée par email après validation du paiement.
+      </p>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goStep(3)">← Retour</button>
+        <button class="btn-primary" style="flex:1" id="btn-pay" onclick="proceedToStripe()">
+          💳 Payer via Stripe
+        </button>
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="card-section" id="section-success">
+      <div class="success-section">
+        <div class="success-icon">✓</div>
+        <h2>Réservation confirmée !</h2>
+        <p>Votre demande de sponsorisation Instagram a bien été reçue.<br>Nous vous contacterons dans les 24h pour finaliser les contenus.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <p>© 2025 AgendaLGBT · <a href="/sponsor.html">Sponsorisation app</a> · <a href="#">Conditions générales</a> · <a href="#">Contact</a></p>
+</footer>
+
+<script>
+  // ================================================================
+  // CONFIG
+  // ================================================================
+  const FIREBASE_PROJECT  = "agendalgbt-app";
+  const FIREBASE_API_KEY  = "AIzaSyBX793d9b70uGXH3E9m_zUt-zK6B6w61gM";
+  const BACKEND_URL       = "https://agendalgbt-sponsor.vercel.app";
+
+  const PACK_PRICES = { express: 7900, soldout: 12900 }; // centimes
+  const PACK_NAMES  = { express: 'Pack Visibilité Express', soldout: 'Pack Sold Out' };
+
+  // ================================================================
+  // STATE
+  // ================================================================
+  let currentStep    = 1;
+  let selectedPack   = null;
+  let selectedDays   = new Set();
+  let bookedDays     = new Set(); // dates déjà réservées depuis Firebase
+  let afficheBase64  = null;
+  let afficheFile    = null;
+
+  // ================================================================
+  // INIT
+  // ================================================================
+  loadBookedDays();
+  document.getElementById('event-date').min = new Date().toISOString().split('T')[0];
+
+  // ================================================================
+  // FIREBASE — chargement des dates réservées
+  // ================================================================
+  async function loadBookedDays() {
+    try {
+      const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT}/databases/(default)/documents/instagram_sponsorships?key=${FIREBASE_API_KEY}&pageSize=200`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      const docs = data.documents || [];
+      docs.forEach(doc => {
+        const fields = doc.fields || {};
+        const status = fields.status?.stringValue || '';
+        if (status === 'cancelled') return;
+        const datesArr = fields.dates_publication?.arrayValue?.values || [];
+        datesArr.forEach(v => {
+          const d = v.stringValue;
+          if (d) bookedDays.add(d);
+        });
+      });
+    } catch(e) {
+      console.warn('Impossible de charger les dates réservées:', e);
+    }
+  }
+
+  // ================================================================
+  // PACK SELECTION
+  // ================================================================
+  function selectPack(pack) {
+    selectedPack = pack;
+    document.querySelectorAll('.pack-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('pack-' + pack).classList.add('selected');
+    document.getElementById('btn-step1').disabled = false;
+  }
+
+  // ================================================================
+  // STEPS
+  // ================================================================
+  function goStep(n) {
+    document.querySelectorAll('.card-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('section-' + n).classList.add('active');
+    currentStep = n;
+    updateStepsBar();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (n === 3) buildDaysGrid();
+    if (n === 4) buildRecap();
+  }
+
+  function updateStepsBar() {
+    for (let i = 1; i <= 4; i++) {
+      const num   = document.getElementById('step-num-' + i);
+      const label = document.getElementById('step-label-' + i);
+      num.className   = 'step-num'   + (i === currentStep ? ' active' : i < currentStep ? ' done' : '');
+      label.className = 'step-label' + (i === currentStep ? ' active' : '');
+      if (i < currentStep) num.textContent = '✓';
+      else num.textContent = i;
+    }
+  }
+
+  // ================================================================
+  // VALIDATION ÉTAPE 2
+  // ================================================================
+  function validateStep2() {
+    const name   = document.getElementById('event-name').value.trim();
+    const date   = document.getElementById('event-date').value;
+    const handle = document.getElementById('insta-handle').value.trim();
+    const email  = document.getElementById('customer-email').value.trim();
+
+    if (!name)   { alert('Merci de renseigner le nom de votre événement.'); return; }
+    if (!date)   { alert('Merci de renseigner la date de votre événement.'); return; }
+    if (!handle) { alert('Merci de renseigner votre compte Instagram.'); return; }
+    if (!email || !email.includes('@')) { alert('Merci de renseigner un email valide.'); return; }
+    if (!afficheFile) { alert('Merci d\'uploader l\'affiche de votre événement.'); return; }
+
+    goStep(3);
+  }
+
+  // ================================================================
+  // UPLOAD AFFICHE
+  // ================================================================
+  function handleFileSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert('L\'image ne doit pas dépasser 10 Mo.'); return; }
+
+    afficheFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      afficheBase64 = e.target.result.split(',')[1];
+      const preview = document.getElementById('upload-preview');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      document.getElementById('upload-zone').classList.add('has-file');
+      document.querySelector('.upload-label').innerHTML = `<strong style="color:var(--pink)">✓ ${file.name}</strong>`;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ================================================================
+  // CALENDRIER
+  // ================================================================
+  function buildDaysGrid() {
+    const grid  = document.getElementById('days-grid');
+    const today = new Date();
+    grid.innerHTML = '';
+
+    // Adapter le hint selon le pack
+    const hint  = document.getElementById('dates-hint');
+    const btn3  = document.getElementById('btn-step3');
+
+    for (let i = 0; i < 60; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const key      = d.toISOString().split('T')[0];
+      const dayName  = d.toLocaleDateString('fr-FR', { weekday: 'short' }).slice(0, 3);
+      const dayNum   = d.getDate();
+      const isBooked = bookedDays.has(key);
+      const isSel    = selectedDays.has(key);
+      const showMonth = (i === 0) || (d.getDate() === 1);
+      const monthName = d.toLocaleDateString('fr-FR', { month: 'short' });
+
+      const btn = document.createElement('button');
+      btn.className = `day-btn${isBooked ? ' booked' : ''}${isSel ? ' selected' : ''}`;
+      btn.title = isBooked
+        ? 'Date déjà réservée'
+        : d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+      btn.innerHTML = `<span class="day-name">${dayName}</span><span class="day-date">${dayNum}</span>${showMonth ? `<span class="day-month">${monthName}</span>` : ''}`;
+
+      if (!isBooked) {
+        btn.onclick = () => {
+          if (selectedDays.has(key)) selectedDays.delete(key);
+          else selectedDays.add(key);
+          buildDaysGrid();
+          updateDatesHint();
+        };
+      }
+      grid.appendChild(btn);
+    }
+    updateDatesHint();
+  }
+
+  function updateDatesHint() {
+    const hint = document.getElementById('dates-hint');
+    const btn3 = document.getElementById('btn-step3');
+    const n = selectedDays.size;
+
+    if (n === 0) {
+      hint.style.display = 'none';
+      btn3.disabled = true;
+    } else {
+      const sorted = [...selectedDays].sort();
+      hint.textContent = `${n} date${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''} — du ${new Date(sorted[0]).toLocaleDateString('fr-FR')} au ${new Date(sorted[sorted.length-1]).toLocaleDateString('fr-FR')}`;
+      hint.style.display = 'block';
+      btn3.disabled = false;
+    }
+  }
+
+  // ================================================================
+  // RÉCAP
+  // ================================================================
+  function buildRecap() {
+    const pack       = selectedPack;
+    const packName   = PACK_NAMES[pack];
+    const price      = PACK_PRICES[pack] / 100;
+    const name       = document.getElementById('event-name').value;
+    const date       = document.getElementById('event-date').value;
+    const handle     = document.getElementById('insta-handle').value;
+    const brief      = document.getElementById('brief').value;
+    const sortedDays = [...selectedDays].sort();
+
+    const dateEvt = date ? new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+    const datesStr = sortedDays.length
+      ? sortedDays.map(d => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })).join(', ')
+      : '—';
+
+    document.getElementById('recap-box').innerHTML = `
+      <div class="recap-row">
+        <span class="recap-label">Pack choisi</span>
+        <span class="recap-value" style="color:var(--pink);font-weight:600">${packName}</span>
+      </div>
+      <div class="recap-row">
+        <span class="recap-label">Événement</span>
+        <span class="recap-value">${name}</span>
+      </div>
+      <div class="recap-row">
+        <span class="recap-label">Date de l'événement</span>
+        <span class="recap-value">${dateEvt}</span>
+      </div>
+      <div class="recap-row">
+        <span class="recap-label">Compte Instagram</span>
+        <span class="recap-value">${handle}</span>
+      </div>
+      ${brief ? `<div class="recap-row"><span class="recap-label">Brief</span><span class="recap-value" style="font-size:13px">${brief}</span></div>` : ''}
+      <div class="recap-row">
+        <span class="recap-label">Dates de publication</span>
+        <span class="recap-value" style="font-size:13px">${datesStr}</span>
+      </div>
+      <div class="recap-total">
+        <span class="label">Total HT</span>
+        <span class="value">${price.toFixed(2)} €</span>
+      </div>
+    `;
+  }
+
+  // ================================================================
+  // STRIPE
+  // ================================================================
+  async function proceedToStripe() {
+    const btn = document.getElementById('btn-pay');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+    const sortedDays = [...selectedDays].sort();
+    const amount     = PACK_PRICES[selectedPack];
+
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/create-checkout-instagram`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pack:           selectedPack,
+          packName:       PACK_NAMES[selectedPack],
+          eventName:      document.getElementById('event-name').value,
+          eventDate:      document.getElementById('event-date').value,
+          instaHandle:    document.getElementById('insta-handle').value,
+          ticketLink:     document.getElementById('ticket-link').value,
+          brief:          document.getElementById('brief').value,
+          customerEmail:  document.getElementById('customer-email').value,
+          datesPublication: sortedDays,
+          afficheBase64:  afficheBase64,
+          amount:         amount,
+        })
+      });
+
+      const { url } = await resp.json();
+      window.location.href = url;
+    } catch(e) {
+      console.error('Erreur paiement:', e);
+      btn.disabled = false;
+      btn.textContent = '💳 Payer via Stripe';
+      alert('Une erreur est survenue. Veuillez réessayer.');
+    }
+  }
+</script>
+
+</body>
+</html>
