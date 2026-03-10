@@ -266,35 +266,20 @@
         <textarea id="brief" rows="3" placeholder="Ex : Décrivez votre événement, l'ambiance, le line-up, les infos clés à mettre en avant..."></textarea>
       </div>
       <!-- MÉDIAS -->
-      <div class="field" id="media-section">
-        <label>Visuels & vidéos *</label>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
-          Vous pouvez uploader directement vos fichiers <strong>ou</strong> coller un lien de transfert (WeTransfer, Google Drive, Dropbox…).
+      <div class="field">
+        <label>Visuels & vidéos * <span style="font-weight:300;color:var(--text-muted)">(WeTransfer, Google Drive, Dropbox…)</span></label>
+        <div id="media-specs-express" style="font-size:13px;color:var(--text-muted);margin-bottom:10px;line-height:1.8;display:none">
+          Partagez vos visuels via un lien de transfert. Formats acceptés : JPG, PNG, MP4, MOV.<br>
+          📱 <strong>Stories</strong> — format portrait <strong>1 080 × 1 920 px</strong> (ratio 9:16)
         </div>
-
-        <!-- Lien de transfert -->
-        <div class="field" style="margin-bottom:16px">
-          <label style="font-size:12px">🔗 Lien de transfert (WeTransfer, Drive…)</label>
-          <input type="url" id="transfer-link" placeholder="https://we.tl/... ou drive.google.com/..." />
+        <div id="media-specs-soldout" style="font-size:13px;color:var(--text-muted);margin-bottom:10px;line-height:1.8;display:none">
+          Partagez vos visuels via un lien de transfert. Formats acceptés : JPG, PNG, MP4, MOV.<br>
+          📱 <strong>Stories</strong> — format portrait <strong>1 080 × 1 920 px</strong> (ratio 9:16)<br>
+          📸 <strong>Post Feed</strong> — format portrait <strong>1 080 × 1 350 px</strong> (ratio 4:5)
         </div>
-
-        <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:16px;letter-spacing:0.05em">— OU UPLOADEZ DIRECTEMENT —</div>
-
-        <!-- Upload Post (toujours visible si Sold Out) -->
-        <div id="upload-post-section" style="display:none;margin-bottom:20px">
-          <div style="font-size:13px;font-weight:500;color:var(--gold);margin-bottom:8px">📸 Visuel du Post Feed <span style="font-weight:300;color:var(--text-muted)">(1 image JPG/PNG, max 10 Mo)</span></div>
-          <div class="upload-zone" id="upload-zone-post">
-            <input type="file" id="post-input" accept="image/jpeg,image/png,image/webp" onchange="handleFileSelectPost(this)" />
-            <div class="upload-icon">🖼️</div>
-            <div class="upload-label" id="post-label">Glissez votre visuel ici ou <strong>cliquez pour choisir</strong></div>
-            <img id="post-preview" alt="Aperçu post" style="max-width:180px;border-radius:10px;margin:12px auto 0;display:none" />
-          </div>
-        </div>
-
-        <!-- Upload Stories -->
-        <div id="upload-stories-section">
-          <div style="font-size:13px;font-weight:500;color:var(--pink);margin-bottom:8px" id="stories-upload-label">📱 Visuels / Vidéos Stories <span style="font-weight:300;color:var(--text-muted)">(JPG, PNG, MP4, MOV — max 100 Mo chacun)</span></div>
-          <div id="story-uploads-list" style="display:flex;flex-direction:column;gap:10px"></div>
+        <input type="url" id="transfer-link" placeholder="https://we.tl/... ou drive.google.com/..." />
+        <div style="font-size:12px;color:var(--text-muted);margin-top:6px">
+          💡 Vous pouvez envoyer vos fichiers après paiement si le lien n'est pas encore prêt — indiquez-le dans la description.
         </div>
       </div>
       <div class="field">
@@ -385,10 +370,7 @@
   let bookedStoryDays = new Set();
   let bookedPostDays  = new Set();
   let eventDateKey  = null;      // YYYY-MM-DD de l'événement
-  let afficheBase64   = null; // legacy (post)
-  let afficheFile     = null;
-  let postFileBase64  = null;
-  let storyFiles      = [];   // [{name, base64, type}] — max 2 ou 3 selon pack
+  // Upload supprimé — lien de transfert uniquement
 
   loadBookedDays();
   document.getElementById('event-date').min = new Date().toISOString().split('T')[0];
@@ -418,10 +400,11 @@
     document.querySelectorAll('.pack-card').forEach(c => c.classList.remove('selected'));
     document.getElementById('pack-' + pack).classList.add('selected');
     document.getElementById('btn-step1').disabled = false;
+    // Specs visuels
+    document.getElementById('media-specs-express').style.display = pack === 'express' ? 'block' : 'none';
+    document.getElementById('media-specs-soldout').style.display = pack === 'soldout' ? 'block' : 'none';
     // Reset sélections
-    storyDays.clear(); postDay = null; storyFiles = [];
-    // Init upload sections selon le pack
-    setTimeout(initUploadSections, 0);
+    storyDays.clear(); postDay = null;
   }
 
   // ================================================================
@@ -464,78 +447,14 @@
     if (!date)   { alert('Merci de renseigner la date de votre événement.'); return; }
     if (!handle) { alert('Merci de renseigner votre compte Instagram.'); return; }
     if (!email || !email.includes('@')) { alert('Merci de renseigner un email valide.'); return; }
-    const hasUpload = afficheFile || postFileBase64 || storyFiles.length > 0;
-    const hasLink   = document.getElementById('transfer-link').value.trim();
-    if (!hasUpload && !hasLink) { alert("Merci d'uploader vos visuels ou de coller un lien de transfert."); return; }
+    // Lien de transfert optionnel (peut être envoyé après)
     eventDateKey = date;
     goStep(3);
   }
 
   // ================================================================
-  // UPLOAD
+  // UPLOAD — supprimé, lien de transfert uniquement
   // ================================================================
-
-  // Affiche les zones d'upload selon le pack sélectionné
-  function initUploadSections() {
-    const limits  = PACK_LIMITS[selectedPack];
-    const postSec = document.getElementById('upload-post-section');
-    const list    = document.getElementById('story-uploads-list');
-    const lbl     = document.getElementById('stories-upload-label');
-
-    // Post Feed : Sold Out seulement
-    postSec.style.display = limits.post > 0 ? 'block' : 'none';
-
-    // Stories : 2 ou 3 zones
-    list.innerHTML = '';
-    storyFiles = [];
-    const nbStories = limits.stories;
-    lbl.innerHTML = `📱 Visuels / Vidéos Stories <span style="font-weight:300;color:var(--text-muted)">(${nbStories} fichier${nbStories>1?'s':''} max · JPG, PNG, MP4, MOV · 100 Mo chacun)</span>`;
-
-    for (let i = 0; i < nbStories; i++) {
-      storyFiles.push(null);
-      const zone = document.createElement('div');
-      zone.className = 'upload-zone-small';
-      zone.id = `story-zone-${i}`;
-      zone.innerHTML = `
-        <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" onchange="handleStoryFile(this, ${i})" />
-        <div class="uz-label" id="story-label-${i}">Story ${i+1} — <strong>cliquez pour choisir</strong></div>
-      `;
-      list.appendChild(zone);
-    }
-  }
-
-  function handleFileSelectPost(input) {
-    const file = input.files[0];
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert("Le visuel post ne doit pas dépasser 10 Mo."); return; }
-    afficheFile = file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      postFileBase64 = e.target.result.split(',')[1];
-      const preview = document.getElementById('post-preview');
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-      document.getElementById('upload-zone-post').classList.add('has-file');
-      document.getElementById('post-label').innerHTML = `<strong style="color:var(--gold)">✓ ${file.name}</strong>`;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function handleStoryFile(input, idx) {
-    const file = input.files[0];
-    if (!file) return;
-    const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (file.size > maxSize) { alert(`Fichier trop lourd (max ${file.type.startsWith('video/') ? '100' : '10'} Mo).`); return; }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      storyFiles[idx] = { name: file.name, base64: e.target.result.split(',')[1], type: file.type };
-      const zone  = document.getElementById(`story-zone-${idx}`);
-      const label = document.getElementById(`story-label-${idx}`);
-      zone.classList.add('has-file');
-      label.innerHTML = `<strong style="color:var(--pink)">✓ ${file.name}</strong>`;
-    };
-    reader.readAsDataURL(file);
-  }
 
   // ================================================================
   // CALENDRIER
@@ -693,35 +612,6 @@
   // ================================================================
   // STRIPE
   // ================================================================
-  // Upload un fichier base64 vers Firebase Storage via l'API REST publique
-  async function uploadToStorage(base64, contentType, filename) {
-    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${FIREBASE_PROJECT}.firebasestorage.app/o?uploadType=multipart&name=${encodeURIComponent(filename)}&key=${FIREBASE_API_KEY}`;
-    const boundary = '----FormBoundary' + Math.random().toString(36).slice(2);
-    const metaJson = JSON.stringify({ contentType, metadata: { firebaseStorageDownloadTokens: token } });
-    const blob = base64ToBlob(base64, contentType);
-
-    const formData = new FormData();
-    formData.append('metadata', new Blob([metaJson], { type: 'application/json' }));
-    formData.append('file', blob, filename.split('/').pop());
-
-    const resp = await fetch(`https://firebasestorage.googleapis.com/v0/b/${FIREBASE_PROJECT}.firebasestorage.app/o?name=${encodeURIComponent(filename)}&key=${FIREBASE_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': contentType, 'X-Firebase-Storage-Download-Token': token },
-      body: blob,
-    });
-    if (!resp.ok) throw new Error(`Upload échoué: ${resp.status}`);
-    const encoded = encodeURIComponent(filename);
-    return `https://firebasestorage.googleapis.com/v0/b/${FIREBASE_PROJECT}.firebasestorage.app/o/${encoded}?alt=media&token=${token}`;
-  }
-
-  function base64ToBlob(base64, contentType) {
-    const binary = atob(base64);
-    const bytes  = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return new Blob([bytes], { type: contentType });
-  }
-
   async function proceedToStripe() {
     const btn = document.getElementById('btn-pay');
     btn.disabled = true;
@@ -730,35 +620,7 @@
     const allDates = [...storyDays].sort();
     if (postDay) allDates.push(postDay);
 
-    const slug = document.getElementById('event-name').value.replace(/\s+/g, '_').toLowerCase();
-    const ts   = Date.now();
-
     try {
-      // 1. Upload post file si présent
-      let postFileUrl = '';
-      if (postFileBase64) {
-        btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Upload post...';
-        try {
-          postFileUrl = await uploadToStorage(postFileBase64, 'image/jpeg', `instagram_sponsorships/${ts}_${slug}_post.jpg`);
-        } catch(e) { console.warn('Upload post échoué:', e); }
-      }
-
-      // 2. Upload stories
-      const storyUrls = [];
-      const validStories = storyFiles.filter(Boolean);
-      for (let i = 0; i < validStories.length; i++) {
-        const sf = validStories[i];
-        btn.innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div> Upload story ${i+1}/${validStories.length}...`;
-        try {
-          const ext = sf.type && sf.type.startsWith('video/') ? 'mp4' : 'jpg';
-          const url = await uploadToStorage(sf.base64, sf.type || 'image/jpeg', `instagram_sponsorships/${ts}_${slug}_story${i+1}.${ext}`);
-          storyUrls.push(url);
-        } catch(e) { console.warn(`Upload story ${i+1} échoué:`, e); }
-      }
-
-      btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Redirection...';
-
-      // 3. Appel backend (sans base64, juste les URLs)
       const resp = await fetch(`${BACKEND_URL}/api/create-checkout-instagram`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -775,8 +637,6 @@
           storyDates:       [...storyDays].sort(),
           postDate:         postDay || null,
           datesPublication: allDates,
-          postFileUrl,
-          storyUrls,
           amount:           PACK_PRICES[selectedPack],
         })
       });
