@@ -128,6 +128,25 @@
     @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     .success-section h2 { font-size: 28px; font-weight: 400; margin-bottom: 12px; }
     .success-section p { color: var(--text-muted); font-size: 15px; line-height: 1.7; }
+    .upload-zone-small {
+      border: 2px dashed rgba(232,96,154,0.25);
+      border-radius: var(--radius);
+      padding: 18px 16px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--bg3);
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .upload-zone-small.gold { border-color: rgba(201,168,76,0.25); }
+    .upload-zone-small:hover { border-color: var(--pink); }
+    .upload-zone-small.gold:hover { border-color: var(--gold); }
+    .upload-zone-small.has-file { border-color: var(--pink); background: rgba(232,96,154,0.04); }
+    .upload-zone-small.gold.has-file { border-color: var(--gold); background: rgba(201,168,76,0.04); }
+    .upload-zone-small input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-zone-small .uz-label { font-size: 13px; color: var(--text-muted); }
+    .upload-zone-small .uz-label strong { color: var(--pink); }
+    .upload-zone-small.gold .uz-label strong { color: var(--gold); }
     .loading-dots { display: inline-flex; gap: 5px; }
     .loading-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: blink 1.2s infinite; }
     .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
@@ -243,16 +262,39 @@
         </div>
       </div>
       <div class="field">
-        <label>Brief / message clé à faire passer</label>
-        <textarea id="brief" rows="3" placeholder="Ex : Mettre en avant la date limite early bird, ambiance clubbing queer, DJ resident..."></textarea>
+        <label>Description du post</label>
+        <textarea id="brief" rows="3" placeholder="Ex : Décrivez votre événement, l'ambiance, le line-up, les infos clés à mettre en avant..."></textarea>
       </div>
-      <div class="field">
-        <label>Affiche de l'événement * <span style="color:var(--text-muted);font-weight:300">(JPG ou PNG, max 10 Mo)</span></label>
-        <div class="upload-zone" id="upload-zone">
-          <input type="file" id="affiche-input" accept="image/jpeg,image/png,image/webp" onchange="handleFileSelect(this)" />
-          <div class="upload-icon">🖼️</div>
-          <div class="upload-label">Glissez votre affiche ici ou <strong>cliquez pour choisir</strong></div>
-          <img id="upload-preview" alt="Aperçu affiche" />
+      <!-- MÉDIAS -->
+      <div class="field" id="media-section">
+        <label>Visuels & vidéos *</label>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+          Vous pouvez uploader directement vos fichiers <strong>ou</strong> coller un lien de transfert (WeTransfer, Google Drive, Dropbox…).
+        </div>
+
+        <!-- Lien de transfert -->
+        <div class="field" style="margin-bottom:16px">
+          <label style="font-size:12px">🔗 Lien de transfert (WeTransfer, Drive…)</label>
+          <input type="url" id="transfer-link" placeholder="https://we.tl/... ou drive.google.com/..." />
+        </div>
+
+        <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:16px;letter-spacing:0.05em">— OU UPLOADEZ DIRECTEMENT —</div>
+
+        <!-- Upload Post (toujours visible si Sold Out) -->
+        <div id="upload-post-section" style="display:none;margin-bottom:20px">
+          <div style="font-size:13px;font-weight:500;color:var(--gold);margin-bottom:8px">📸 Visuel du Post Feed <span style="font-weight:300;color:var(--text-muted)">(1 image JPG/PNG, max 10 Mo)</span></div>
+          <div class="upload-zone" id="upload-zone-post">
+            <input type="file" id="post-input" accept="image/jpeg,image/png,image/webp" onchange="handleFileSelectPost(this)" />
+            <div class="upload-icon">🖼️</div>
+            <div class="upload-label" id="post-label">Glissez votre visuel ici ou <strong>cliquez pour choisir</strong></div>
+            <img id="post-preview" alt="Aperçu post" style="max-width:180px;border-radius:10px;margin:12px auto 0;display:none" />
+          </div>
+        </div>
+
+        <!-- Upload Stories -->
+        <div id="upload-stories-section">
+          <div style="font-size:13px;font-weight:500;color:var(--pink);margin-bottom:8px" id="stories-upload-label">📱 Visuels / Vidéos Stories <span style="font-weight:300;color:var(--text-muted)">(JPG, PNG, MP4, MOV — max 100 Mo chacun)</span></div>
+          <div id="story-uploads-list" style="display:flex;flex-direction:column;gap:10px"></div>
         </div>
       </div>
       <div class="field">
@@ -342,8 +384,10 @@
   let postDay       = null;      // date post sélectionnée (string YYYY-MM-DD)
   let bookedDays    = new Set();
   let eventDateKey  = null;      // YYYY-MM-DD de l'événement
-  let afficheBase64 = null;
-  let afficheFile   = null;
+  let afficheBase64   = null; // legacy (post)
+  let afficheFile     = null;
+  let postFileBase64  = null;
+  let storyFiles      = [];   // [{name, base64, type}] — max 2 ou 3 selon pack
 
   loadBookedDays();
   document.getElementById('event-date').min = new Date().toISOString().split('T')[0];
@@ -372,7 +416,9 @@
     document.getElementById('pack-' + pack).classList.add('selected');
     document.getElementById('btn-step1').disabled = false;
     // Reset sélections
-    storyDays.clear(); postDay = null;
+    storyDays.clear(); postDay = null; storyFiles = [];
+    // Init upload sections selon le pack
+    setTimeout(initUploadSections, 0);
   }
 
   // ================================================================
@@ -415,7 +461,9 @@
     if (!date)   { alert('Merci de renseigner la date de votre événement.'); return; }
     if (!handle) { alert('Merci de renseigner votre compte Instagram.'); return; }
     if (!email || !email.includes('@')) { alert('Merci de renseigner un email valide.'); return; }
-    if (!afficheFile) { alert("Merci d'uploader l'affiche de votre événement."); return; }
+    const hasUpload = afficheFile || postFileBase64 || storyFiles.length > 0;
+    const hasLink   = document.getElementById('transfer-link').value.trim();
+    if (!hasUpload && !hasLink) { alert("Merci d'uploader vos visuels ou de coller un lien de transfert."); return; }
     eventDateKey = date;
     goStep(3);
   }
@@ -423,19 +471,65 @@
   // ================================================================
   // UPLOAD
   // ================================================================
-  function handleFileSelect(input) {
+
+  // Affiche les zones d'upload selon le pack sélectionné
+  function initUploadSections() {
+    const limits  = PACK_LIMITS[selectedPack];
+    const postSec = document.getElementById('upload-post-section');
+    const list    = document.getElementById('story-uploads-list');
+    const lbl     = document.getElementById('stories-upload-label');
+
+    // Post Feed : Sold Out seulement
+    postSec.style.display = limits.post > 0 ? 'block' : 'none';
+
+    // Stories : 2 ou 3 zones
+    list.innerHTML = '';
+    storyFiles = [];
+    const nbStories = limits.stories;
+    lbl.innerHTML = `📱 Visuels / Vidéos Stories <span style="font-weight:300;color:var(--text-muted)">(${nbStories} fichier${nbStories>1?'s':''} max · JPG, PNG, MP4, MOV · 100 Mo chacun)</span>`;
+
+    for (let i = 0; i < nbStories; i++) {
+      storyFiles.push(null);
+      const zone = document.createElement('div');
+      zone.className = 'upload-zone-small';
+      zone.id = `story-zone-${i}`;
+      zone.innerHTML = `
+        <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" onchange="handleStoryFile(this, ${i})" />
+        <div class="uz-label" id="story-label-${i}">Story ${i+1} — <strong>cliquez pour choisir</strong></div>
+      `;
+      list.appendChild(zone);
+    }
+  }
+
+  function handleFileSelectPost(input) {
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert("L'image ne doit pas dépasser 10 Mo."); return; }
+    if (file.size > 10 * 1024 * 1024) { alert("Le visuel post ne doit pas dépasser 10 Mo."); return; }
     afficheFile = file;
     const reader = new FileReader();
     reader.onload = (e) => {
-      afficheBase64 = e.target.result.split(',')[1];
-      const preview = document.getElementById('upload-preview');
+      postFileBase64 = e.target.result.split(',')[1];
+      const preview = document.getElementById('post-preview');
       preview.src = e.target.result;
       preview.style.display = 'block';
-      document.getElementById('upload-zone').classList.add('has-file');
-      document.querySelector('.upload-label').innerHTML = `<strong style="color:var(--pink)">✓ ${file.name}</strong>`;
+      document.getElementById('upload-zone-post').classList.add('has-file');
+      document.getElementById('post-label').innerHTML = `<strong style="color:var(--gold)">✓ ${file.name}</strong>`;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleStoryFile(input, idx) {
+    const file = input.files[0];
+    if (!file) return;
+    const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) { alert(`Fichier trop lourd (max ${file.type.startsWith('video/') ? '100' : '10'} Mo).`); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      storyFiles[idx] = { name: file.name, base64: e.target.result.split(',')[1], type: file.type };
+      const zone  = document.getElementById(`story-zone-${idx}`);
+      const label = document.getElementById(`story-label-${idx}`);
+      zone.classList.add('has-file');
+      label.innerHTML = `<strong style="color:var(--pink)">✓ ${file.name}</strong>`;
     };
     reader.readAsDataURL(file);
   }
@@ -585,7 +679,8 @@
       <div class="recap-row"><span class="recap-label">Événement</span><span class="recap-value">${name}</span></div>
       <div class="recap-row"><span class="recap-label">Date de l'événement</span><span class="recap-value">${dateEvt}</span></div>
       <div class="recap-row"><span class="recap-label">Compte Instagram</span><span class="recap-value">${handle}</span></div>
-      ${brief ? `<div class="recap-row"><span class="recap-label">Brief</span><span class="recap-value" style="font-size:13px">${brief}</span></div>` : ''}
+      ${brief ? `<div class="recap-row"><span class="recap-label">Description du post</span><span class="recap-value" style="font-size:13px">${brief}</span></div>` : ''}
+      ${document.getElementById('transfer-link').value ? `<div class="recap-row"><span class="recap-label">🔗 Lien de transfert</span><span class="recap-value" style="font-size:13px">${document.getElementById('transfer-link').value}</span></div>` : ''}
       <div class="recap-row"><span class="recap-label">📱 Dates Stories</span><span class="recap-value" style="font-size:13px">${storiesStr}</span></div>
       ${postStr ? `<div class="recap-row"><span class="recap-label">📸 Date Post Feed</span><span class="recap-value">${postStr}</span></div>` : ''}
       <div class="recap-total"><span class="label">Total HT</span><span class="value">${price.toFixed(2)} €</span></div>
@@ -616,10 +711,12 @@
           ticketLink:       document.getElementById('ticket-link').value,
           brief:            document.getElementById('brief').value,
           customerEmail:    document.getElementById('customer-email').value,
+          transferLink:     document.getElementById('transfer-link').value,
           storyDates:       [...storyDays].sort(),
           postDate:         postDay || null,
           datesPublication: allDates,
-          afficheBase64:    afficheBase64,
+          postFileBase64:   postFileBase64,
+          storyFiles:       storyFiles.filter(Boolean),
           amount:           PACK_PRICES[selectedPack],
         })
       });
