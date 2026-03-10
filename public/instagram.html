@@ -693,6 +693,35 @@
   // ================================================================
   // STRIPE
   // ================================================================
+  // Upload un fichier base64 vers Firebase Storage via l'API REST publique
+  async function uploadToStorage(base64, contentType, filename) {
+    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${FIREBASE_PROJECT}.firebasestorage.app/o?uploadType=multipart&name=${encodeURIComponent(filename)}&key=${FIREBASE_API_KEY}`;
+    const boundary = '----FormBoundary' + Math.random().toString(36).slice(2);
+    const metaJson = JSON.stringify({ contentType, metadata: { firebaseStorageDownloadTokens: token } });
+    const blob = base64ToBlob(base64, contentType);
+
+    const formData = new FormData();
+    formData.append('metadata', new Blob([metaJson], { type: 'application/json' }));
+    formData.append('file', blob, filename.split('/').pop());
+
+    const resp = await fetch(`https://firebasestorage.googleapis.com/v0/b/${FIREBASE_PROJECT}.firebasestorage.app/o?name=${encodeURIComponent(filename)}&key=${FIREBASE_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': contentType, 'X-Firebase-Storage-Download-Token': token },
+      body: blob,
+    });
+    if (!resp.ok) throw new Error(`Upload échoué: ${resp.status}`);
+    const encoded = encodeURIComponent(filename);
+    return `https://firebasestorage.googleapis.com/v0/b/${FIREBASE_PROJECT}.firebasestorage.app/o/${encoded}?alt=media&token=${token}`;
+  }
+
+  function base64ToBlob(base64, contentType) {
+    const binary = atob(base64);
+    const bytes  = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: contentType });
+  }
+
   async function proceedToStripe() {
     const btn = document.getElementById('btn-pay');
     btn.disabled = true;
@@ -701,7 +730,35 @@
     const allDates = [...storyDays].sort();
     if (postDay) allDates.push(postDay);
 
+    const slug = document.getElementById('event-name').value.replace(/\s+/g, '_').toLowerCase();
+    const ts   = Date.now();
+
     try {
+      // 1. Upload post file si présent
+      let postFileUrl = '';
+      if (postFileBase64) {
+        btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Upload post...';
+        try {
+          postFileUrl = await uploadToStorage(postFileBase64, 'image/jpeg', `instagram_sponsorships/${ts}_${slug}_post.jpg`);
+        } catch(e) { console.warn('Upload post échoué:', e); }
+      }
+
+      // 2. Upload stories
+      const storyUrls = [];
+      const validStories = storyFiles.filter(Boolean);
+      for (let i = 0; i < validStories.length; i++) {
+        const sf = validStories[i];
+        btn.innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div> Upload story ${i+1}/${validStories.length}...`;
+        try {
+          const ext = sf.type && sf.type.startsWith('video/') ? 'mp4' : 'jpg';
+          const url = await uploadToStorage(sf.base64, sf.type || 'image/jpeg', `instagram_sponsorships/${ts}_${slug}_story${i+1}.${ext}`);
+          storyUrls.push(url);
+        } catch(e) { console.warn(`Upload story ${i+1} échoué:`, e); }
+      }
+
+      btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Redirection...';
+
+      // 3. Appel backend (sans base64, juste les URLs)
       const resp = await fetch(`${BACKEND_URL}/api/create-checkout-instagram`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -718,18 +775,19 @@
           storyDates:       [...storyDays].sort(),
           postDate:         postDay || null,
           datesPublication: allDates,
-          postFileBase64:   postFileBase64,
-          storyFiles:       storyFiles.filter(Boolean),
+          postFileUrl,
+          storyUrls,
           amount:           PACK_PRICES[selectedPack],
         })
       });
-      const { url } = await resp.json();
-      window.location.href = url;
+      const data = await resp.json();
+      if (!data.url) throw new Error(data.error || 'URL manquante');
+      window.location.href = data.url;
     } catch(e) {
       console.error('Erreur paiement:', e);
       btn.disabled = false;
       btn.textContent = '💳 Payer via Stripe';
-      alert('Une erreur est survenue. Veuillez réessayer.');
+      alert('Une erreur est survenue : ' + e.message);
     }
   }
 </script>
