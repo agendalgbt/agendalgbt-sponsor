@@ -852,6 +852,7 @@
 
   // Tarif par utilisateur par jour
   const TARIF_PAR_USER = 0.012;       // €/user/jour
+  const TVA = 0.20;                    // 20% TVA France
   const WEEKEND_MULTIPLIER = 1.30;   // +30% vendredi & samedi
   const TARIF_MINIMUM = 3.00;        // minimum par jour même si peu d'users
 
@@ -1128,7 +1129,11 @@
     let rows = '';
     if (normalDays.length) rows += `<div class="pricing-row"><span class="label">${normalDays.length} jour${normalDays.length > 1 ? 's' : ''} (lun–jeu)</span><span class="value">${(normalDays.length * priceNormal).toFixed(2)} €</span></div>`;
     if (weekendDays.length) rows += `<div class="pricing-row"><span class="label">${weekendDays.length} vendredi/samedi</span><span class="value">${(weekendDays.length * priceWeekend).toFixed(2)} €</span></div>`;
-    rows += `<div class="pricing-row total"><span class="label">Total HT</span><span class="value">${total.toFixed(2)} €</span></div>`;
+    const tva2 = Math.round(total * TVA * 100) / 100;
+    const ttc2 = Math.round((total + tva2) * 100) / 100;
+    rows += `<div class="pricing-row"><span class="label">Total HT</span><span class="value">${total.toFixed(2)} €</span></div>`;
+    rows += `<div class="pricing-row"><span class="label">TVA 20%</span><span class="value">${tva2.toFixed(2)} €</span></div>`;
+    rows += `<div class="pricing-row total"><span class="label">Total TTC</span><span class="value">${ttc2.toFixed(2)} €</span></div>`;
 
     document.getElementById('pricing-breakdown').innerHTML = rows;
   }
@@ -1203,7 +1208,11 @@
     let rows = '';
     if (normalDays.length) rows += `<div class="pricing-row"><span class="label">${normalDays.length} jour${normalDays.length > 1 ? 's' : ''} (tarif normal · ${priceNormal.toFixed(2)}€/j)</span><span class="value">${(normalDays.length * priceNormal).toFixed(2)} €</span></div>`;
     if (weekendDays.length) rows += `<div class="pricing-row"><span class="label">${weekendDays.length} vendredi/samedi (${priceWeekend.toFixed(2)}€/j)</span><span class="value">${(weekendDays.length * priceWeekend).toFixed(2)} €</span></div>`;
-    rows += `<div class="pricing-row total"><span class="label">Total HT</span><span class="value">${total.toFixed(2)} €</span></div>`;
+    const tva3 = Math.round(total * TVA * 100) / 100;
+    const ttc3 = Math.round((total + tva3) * 100) / 100;
+    rows += `<div class="pricing-row"><span class="label">Total HT</span><span class="value">${total.toFixed(2)} €</span></div>`;
+    rows += `<div class="pricing-row"><span class="label">TVA 20%</span><span class="value">${tva3.toFixed(2)} €</span></div>`;
+    rows += `<div class="pricing-row total"><span class="label">Total TTC</span><span class="value">${ttc3.toFixed(2)} €</span></div>`;
     document.getElementById('recap-pricing').innerHTML = rows;
   }
 
@@ -1216,6 +1225,8 @@
     btn.textContent = '⏳ Redirection…';
 
     const { total } = calcTotal();
+    const tvaPay = Math.round(total * TVA * 100) / 100;
+    const ttcPay = Math.round((total + tvaPay) * 100) / 100;
     const sortedDays = [...selectedDays].sort();
 
     try {
@@ -1227,7 +1238,8 @@
           eventId: selectedEvent.id,
           eventName: selectedEvent.name,
           days: sortedDays,
-          amount: Math.round(total * 100), // en centimes
+          amountHT: Math.round(total * 100),      // centimes HT
+          amount: Math.round(ttcPay * 100),        // centimes TTC (Stripe facture TTC)
         })
       });
 
