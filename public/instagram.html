@@ -108,6 +108,54 @@
     .dates-hint .ok { color: #5cb85c; font-weight: 500; }
 
     /* RECAP */
+
+    .billing-section {
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .billing-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .billing-field {
+      margin-bottom: 12px;
+    }
+    .billing-field label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+    }
+    .billing-field input {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .billing-field input:focus {
+      outline: none;
+      border-color: rgba(201,168,76,0.4);
+    }
+    .billing-field input::placeholder { color: var(--text-muted); opacity: 0.5; }
+    .billing-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 480px) { .billing-row { grid-template-columns: 1fr; } }
+
     .recap-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
     .recap-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
     .recap-row:last-child { border-bottom: none; }
@@ -343,6 +391,30 @@
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;line-height:1.6">
         En procédant au paiement, vous acceptez nos <a href="#" style="color:var(--gold)">conditions générales</a>. Votre réservation sera confirmée par email après validation du paiement.
       </p>
+
+      <!-- Infos de facturation -->
+      <div class="billing-section">
+        <div class="billing-title">🧾 Informations de facturation</div>
+        <div class="billing-field">
+          <label>Nom / Raison sociale *</label>
+          <input type="text" id="billing-name" placeholder="Ex: Association Pride Paris" />
+        </div>
+        <div class="billing-field">
+          <label>Adresse *</label>
+          <input type="text" id="billing-address" placeholder="Ex: 12 rue de la Paix" />
+        </div>
+        <div class="billing-row">
+          <div class="billing-field">
+            <label>Code postal *</label>
+            <input type="text" id="billing-zip" placeholder="75001" maxlength="10" />
+          </div>
+          <div class="billing-field">
+            <label>Ville *</label>
+            <input type="text" id="billing-city" placeholder="Paris" />
+          </div>
+        </div>
+      </div>
+
       <div class="btn-row">
         <button class="btn-secondary" onclick="goStep(3)">← Retour</button>
         <button class="btn-primary" style="flex:1" id="btn-pay" onclick="proceedToStripe()">💳 Payer via Stripe</button>
@@ -631,6 +703,16 @@
   // ================================================================
   async function proceedToStripe() {
     const btn = document.getElementById('btn-pay');
+
+    const bName = document.getElementById('billing-name').value.trim();
+    const bAddr = document.getElementById('billing-address').value.trim();
+    const bZip  = document.getElementById('billing-zip').value.trim();
+    const bCity = document.getElementById('billing-city').value.trim();
+    if (!bName || !bAddr || !bZip || !bCity) {
+      alert('Veuillez remplir tous les champs de facturation.');
+      return;
+    }
+
     btn.disabled = true;
     btn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
 
@@ -654,8 +736,12 @@
           storyDates:       [...storyDays].sort(),
           postDate:         postDay || null,
           datesPublication: allDates,
-          amount:           Math.round(PACK_PRICES[selectedPack] * (1 + TVA)), // TTC en centimes
-          amountHT:         PACK_PRICES[selectedPack], // HT en centimes
+          amount:           Math.round(PACK_PRICES[selectedPack] * (1 + TVA)),
+          amountHT:         PACK_PRICES[selectedPack],
+          billingName:      document.getElementById('billing-name').value.trim(),
+          billingAddress:   document.getElementById('billing-address').value.trim(),
+          billingZip:       document.getElementById('billing-zip').value.trim(),
+          billingCity:      document.getElementById('billing-city').value.trim(),
         })
       });
       const data = await resp.json();
