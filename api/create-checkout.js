@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { eventId, eventName, days, amount } = req.body;
+    const { eventId, eventName, days, amount, amountHT } = req.body;
 
     if (!eventId || !eventName || !days || !amount) {
       return res.status(400).json({ error: 'Paramètres manquants' });
@@ -29,9 +29,6 @@ module.exports = async function handler(req, res) {
     const sortedDays = [...days].sort();
     const dateDebut = new Date(sortedDays[0]).toLocaleDateString('fr-FR');
     const dateFin = new Date(sortedDays[sortedDays.length - 1]).toLocaleDateString('fr-FR');
-
-    const { amountHT, amount } = req.body;
-    const TVA_RATE = 2000; // 20% en "basis points" Stripe (20.00%)
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
