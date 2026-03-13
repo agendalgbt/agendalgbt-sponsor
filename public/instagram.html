@@ -95,6 +95,7 @@
     .day-btn.event-day .day-date { color: var(--text); font-weight: 700; }
     .day-btn.event-day::after { content: '★'; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.15); color: var(--text); font-size: 8px; padding: 1px 5px; border-radius: 999px; }
     .day-btn.booked { opacity: 0.3; cursor: not-allowed; background: rgba(255,255,255,0.02); }
+    .day-btn.after-event { opacity: 0.2; cursor: not-allowed; background: rgba(255,255,255,0.02); }
     .day-btn.full:not(.selected-story):not(.selected-post) { opacity: 0.35; cursor: not-allowed; }
     .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
     .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
@@ -513,8 +514,9 @@
       const dayNum    = d.getDate();
       const showMonth = (i === 0) || (d.getDate() === 1);
       const monthName = d.toLocaleDateString('fr-FR', { month: 'short' });
-      const isBooked  = type === 'stories' ? bookedStoryDays.has(key) : bookedPostDays.has(key);
-      const isEvtDay  = (key === eventDateKey);
+      const isBooked     = type === 'stories' ? bookedStoryDays.has(key) : bookedPostDays.has(key);
+      const isEvtDay     = (key === eventDateKey);
+      const isAfterEvent = eventDateKey ? (key > eventDateKey) : false;
 
       const isSelStory = storyDays.has(key);
       const isSelPost  = (postDay === key);
@@ -536,10 +538,12 @@
 
       const btn = document.createElement('button');
       btn.className = cls;
-      btn.title = isBooked ? 'Date déjà réservée' : isEvtDay ? '★ Jour de votre événement' : d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+      btn.title = isBooked ? 'Date déjà réservée' : isAfterEvent ? 'Après votre événement' : isEvtDay ? '★ Jour de votre événement' : d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
       btn.innerHTML = `<span class="day-name">${dayName}</span><span class="day-date">${dayNum}</span>${showMonth ? `<span class="day-month">${monthName}</span>` : ''}`;
 
-      if (!isBooked) {
+      if (isAfterEvent) cls += ' after-event';
+
+      if (!isBooked && !isAfterEvent) {
         btn.onclick = () => toggleDay(type, key);
       }
       grid.appendChild(btn);
