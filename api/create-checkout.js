@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { eventId, eventName, days, amount, amountHT } = req.body;
+    const { eventId, eventName, days, amount, amountHT, billingName, billingAddress, billingZip, billingCity } = req.body;
 
     if (!eventId || !eventName || !days || !amount) {
       return res.status(400).json({ error: 'Paramètres manquants' });
@@ -59,6 +59,9 @@ module.exports = async function handler(req, res) {
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/sponsor.html`,
+      customer_creation: 'always',
+      customer_update: { address: 'auto', name: 'auto' },
+      billing_address_collection: 'auto',
       metadata: {
         eventId,
         eventName,
@@ -67,6 +70,19 @@ module.exports = async function handler(req, res) {
         amount: String(amount),
       },
     });
+
+    // Mettre à jour le client Stripe avec les infos de facturation
+    if (session.customer && billingName) {
+      await stripe.customers.update(session.customer, {
+        name: billingName,
+        address: {
+          line1: billingAddress || '',
+          postal_code: billingZip || '',
+          city: billingCity || '',
+          country: 'FR',
+        },
+      });
+    }
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({ url: session.url });
