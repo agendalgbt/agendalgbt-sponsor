@@ -676,7 +676,18 @@
       font-size: 12px;
       color: var(--text-muted);
       margin-top: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 4px;
+    }
+    .error-info {
+      font-size: 12px;
+      color: #ff6b6b;
+      min-height: 18px;
+      margin-bottom: 16px;
+    }
+    .day-btn.range-start {
+      border-color: var(--gold);
+      border-style: dashed;
+      background: rgba(201,168,76,0.08);
     }
 
     @media (max-width: 600px) {
@@ -760,7 +771,7 @@
     <!-- STEP 2 : Sélection dates + tarif -->
     <div class="card-section" id="section-2">
       <div class="section-title">Choisissez vos dates de mise en avant</div>
-      <div class="section-sub">Sélectionnez les jours où votre événement apparaîtra en première position. Minimum 3 jours.</div>
+      <div class="section-sub">Sélectionnez une <strong>plage de jours consécutifs</strong> se terminant <strong>le jour de votre événement</strong> (★). Cliquez sur le premier jour, puis sur le jour de l'événement. Minimum 3 jours.</div>
 
       <div class="selected-recap" id="selected-recap"></div>
 
@@ -778,7 +789,8 @@
 
       <div class="days-label">Sélectionnez vos jours (les 30 prochains jours) :</div>
       <div class="days-grid" id="days-grid"></div>
-      <div class="min-info" id="min-info">Sélectionnez au moins 3 jours.</div>
+      <div class="min-info" id="min-info">Cliquez sur le jour de début de votre mise en avant.</div>
+      <div class="error-info" id="error-info"></div>
 
       <div class="tarif-info" id="tarif-badges"></div>
 
@@ -1019,7 +1031,8 @@
       const monthName = d.toLocaleDateString('fr-FR', { month: 'short' });
       const showMonth = (i === 0) || (d.getDate() === 1);
       const btn = document.createElement('button');
-      btn.className = `day-btn${weekend ? ' weekend-day' : ''}${sel ? ' selected' : ''}${isEventDay ? ' event-day' : ''}`;
+      const isRangeStart = (rangeStart === key);
+      btn.className = `day-btn${weekend ? ' weekend-day' : ''}${sel ? ' selected' : ''}${isEventDay ? ' event-day' : ''}${isRangeStart ? ' range-start' : ''}`;
       btn.title = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + (isEventDay ? ' — Jour de votre événement' : '');
       btn.innerHTML = `<span class="day-name">${dayName}</span><span class="day-date">${dayNum}</span>${showMonth ? `<span class="day-month">${monthName}</span>` : ''}`;
       btn.onclick = () => toggleDay(key);
@@ -1027,9 +1040,60 @@
     }
   }
 
+  // Sélection par plage : startDay → eventDay
+  let rangeStart = null;
+
   function toggleDay(key) {
-    if (selectedDays.has(key)) selectedDays.delete(key);
-    else selectedDays.add(key);
+    const eventDateKey = selectedEvent?.dateStart
+      ? selectedEvent.dateStart.toISOString().split('T')[0]
+      : null;
+    const errorEl = document.getElementById('error-info');
+    errorEl.textContent = '';
+
+    // Si pas de jour de début sélectionné encore
+    if (!rangeStart) {
+      // Ne peut pas commencer après l'événement
+      if (eventDateKey && key > eventDateKey) {
+        errorEl.textContent = '⚠️ Vous ne pouvez pas sélectionner un jour après votre événement.';
+        return;
+      }
+      // Ne peut pas commencer sur le jour de l'événement si c'est pour faire 1 seul jour
+      rangeStart = key;
+      selectedDays.clear();
+      selectedDays.add(key);
+      document.getElementById('min-info').textContent = 'Maintenant cliquez sur le jour de votre événement (★) pour terminer la sélection.';
+      buildDaysGrid();
+      updatePricing();
+      return;
+    }
+
+    // Deuxième clic : doit être le jour de l'événement
+    if (eventDateKey && key !== eventDateKey) {
+      errorEl.textContent = '⚠️ Le dernier jour doit être le jour de votre événement (★). Cliquez sur la case marquée ★.';
+      return;
+    }
+
+    // Vérifier que la plage est d'au moins 3 jours
+    const start = new Date(rangeStart);
+    const end = new Date(key);
+    if (end <= start) {
+      errorEl.textContent = '⚠️ Sélectionnez un jour de fin après le jour de début.';
+      rangeStart = null;
+      selectedDays.clear();
+      document.getElementById('min-info').textContent = 'Cliquez sur le jour de début de votre mise en avant.';
+      buildDaysGrid();
+      updatePricing();
+      return;
+    }
+
+    // Remplir tous les jours entre start et end
+    selectedDays.clear();
+    const d = new Date(start);
+    while (d <= end) {
+      selectedDays.add(d.toISOString().split('T')[0]);
+      d.setDate(d.getDate() + 1);
+    }
+    rangeStart = null;
     buildDaysGrid();
     updatePricing();
   }
@@ -1038,9 +1102,13 @@
     const count = selectedDays.size;
     const minOk = count >= 3;
     document.getElementById('btn-step2').disabled = !minOk;
-    document.getElementById('min-info').textContent = minOk
-      ? `${count} jour${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''}`
-      : `Sélectionnez au moins 3 jours (${count}/3)`;
+    if (!rangeStart) {
+      document.getElementById('min-info').textContent = minOk
+        ? `✅ ${count} jour${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''}`
+        : count === 0
+          ? 'Cliquez sur le jour de début de votre mise en avant.'
+          : `Minimum 3 jours requis (${count}/3).`;
+    }
 
     if (!count) {
       document.getElementById('pricing-breakdown').innerHTML = '';
@@ -1069,6 +1137,7 @@
   // UI — NAVIGATION
   // ========================================================
   function goStep(n) {
+    if (n === 2) { rangeStart = null; selectedDays.clear(); }
     // Cas succès
     if (n === 'success') {
       document.getElementById(`section-${currentStep}`)?.classList.remove('active');
