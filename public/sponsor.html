@@ -1082,12 +1082,15 @@
     const count = selectedDays.size;
     const minOk = count >= 3;
     document.getElementById('btn-step2').disabled = !minOk;
-    if (!rangeStart) {
-      document.getElementById('min-info').textContent = minOk
-        ? `✅ ${count} jour${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''}`
-        : count === 0
-          ? 'Cliquez sur le jour de début de votre mise en avant.'
-          : `Minimum 3 jours requis (${count}/3).`;
+    document.getElementById('min-info').textContent = minOk
+      ? `✅ ${count} jour${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''}`
+      : count === 0
+        ? 'Cliquez sur le jour de début de votre mise en avant.'
+        : `Minimum 3 jours requis (${count}/3).`;
+
+    // Mettre à jour l'affichage de l'audience
+    if (audienceCount > 0) {
+      document.getElementById('audience-num').textContent = audienceCount.toLocaleString('fr-FR');
     }
 
     if (!count) {
