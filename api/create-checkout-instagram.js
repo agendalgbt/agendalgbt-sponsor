@@ -49,6 +49,7 @@ module.exports = async function handler(req, res) {
       postDate,
       datesPublication,
       amount,
+      amountHT,
     } = req.body;
 
     // Validation
@@ -73,12 +74,22 @@ module.exports = async function handler(req, res) {
               name: `${packName} — ${eventName}`,
               description: `Publication du ${dateDebut} au ${dateFin} · @agenda_lgbt`,
             },
-            unit_amount: amount, // en centimes
+            unit_amount: amountHT || amount, // HT en centimes
+            tax_behavior: 'exclusive',
           },
           quantity: 1,
+          tax_rates: [process.env.STRIPE_TAX_RATE_ID],
         },
       ],
       mode: 'payment',
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          description: `${packName} AgendaLGBT — ${eventName}`,
+          metadata: { pack, eventName, instaHandle },
+          rendering_options: { amount_tax_display: 'include_inclusive_tax' },
+        },
+      },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success-instagram.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${process.env.NEXT_PUBLIC_BASE_URL}/instagram.html`,
       metadata: {
