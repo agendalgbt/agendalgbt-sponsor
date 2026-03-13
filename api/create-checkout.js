@@ -30,6 +30,9 @@ module.exports = async function handler(req, res) {
     const dateDebut = new Date(sortedDays[0]).toLocaleDateString('fr-FR');
     const dateFin = new Date(sortedDays[sortedDays.length - 1]).toLocaleDateString('fr-FR');
 
+    const { amountHT, amount } = req.body;
+    const TVA_RATE = 2000; // 20% en "basis points" Stripe (20.00%)
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -40,18 +43,30 @@ module.exports = async function handler(req, res) {
               name: `Sponsorisation — ${eventName}`,
               description: `${days.length} jour(s) · du ${dateDebut} au ${dateFin}`,
             },
-            unit_amount: amount, // en centimes
+            unit_amount: amountHT || amount, // montant HT en centimes
+            tax_behavior: 'exclusive',        // TVA en sus
           },
           quantity: 1,
+          tax_rates: [process.env.STRIPE_TAX_RATE_ID], // ID du taux TVA créé dans Stripe
         },
       ],
       mode: 'payment',
+      // Génération automatique de facture
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          description: `Sponsorisation AgendaLGBT — ${eventName} · du ${dateDebut} au ${dateFin}`,
+          metadata: { eventId, eventName },
+          rendering_options: { amount_tax_display: 'include_inclusive_tax' },
+        },
+      },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/sponsor.html`,
       metadata: {
         eventId,
         eventName,
         days: JSON.stringify(days),
+        amountHT: String(amountHT || amount),
         amount: String(amount),
       },
     });
