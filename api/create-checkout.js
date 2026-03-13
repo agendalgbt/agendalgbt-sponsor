@@ -30,8 +30,20 @@ module.exports = async function handler(req, res) {
     const dateDebut = new Date(sortedDays[0]).toLocaleDateString('fr-FR');
     const dateFin = new Date(sortedDays[sortedDays.length - 1]).toLocaleDateString('fr-FR');
 
+    // Créer le customer Stripe avec les infos de facturation
+    const customer = await stripe.customers.create({
+      name: billingName || undefined,
+      address: billingName ? {
+        line1: billingAddress || '',
+        postal_code: billingZip || '',
+        city: billingCity || '',
+        country: 'FR',
+      } : undefined,
+    });
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
+      customer: customer.id,
       line_items: [
         {
           price_data: {
@@ -40,15 +52,14 @@ module.exports = async function handler(req, res) {
               name: `Sponsorisation — ${eventName}`,
               description: `${days.length} jour(s) · du ${dateDebut} au ${dateFin}`,
             },
-            unit_amount: amountHT || amount, // montant HT en centimes
-            tax_behavior: 'exclusive',        // TVA en sus
+            unit_amount: amountHT || amount,
+            tax_behavior: 'exclusive',
           },
           quantity: 1,
-          tax_rates: [process.env.STRIPE_TAX_RATE_ID], // ID du taux TVA créé dans Stripe
+          tax_rates: [process.env.STRIPE_TAX_RATE_ID],
         },
       ],
       mode: 'payment',
-      // Génération automatique de facture
       invoice_creation: {
         enabled: true,
         invoice_data: {
@@ -59,9 +70,6 @@ module.exports = async function handler(req, res) {
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/sponsor.html`,
-      customer_creation: 'always',
-      customer_update: { address: 'auto', name: 'auto' },
-      billing_address_collection: 'auto',
       metadata: {
         eventId,
         eventName,
@@ -70,19 +78,6 @@ module.exports = async function handler(req, res) {
         amount: String(amount),
       },
     });
-
-    // Mettre à jour le client Stripe avec les infos de facturation
-    if (session.customer && billingName) {
-      await stripe.customers.update(session.customer, {
-        name: billingName,
-        address: {
-          line1: billingAddress || '',
-          postal_code: billingZip || '',
-          city: billingCity || '',
-          country: 'FR',
-        },
-      });
-    }
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({ url: session.url });
