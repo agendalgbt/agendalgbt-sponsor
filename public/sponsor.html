@@ -684,11 +684,7 @@
       min-height: 18px;
       margin-bottom: 16px;
     }
-    .day-btn.range-start {
-      border-color: var(--gold);
-      border-style: dashed;
-      background: rgba(201,168,76,0.08);
-    }
+
 
     @media (max-width: 600px) {
       header { padding: 24px 16px 0; }
@@ -771,7 +767,7 @@
     <!-- STEP 2 : Sélection dates + tarif -->
     <div class="card-section" id="section-2">
       <div class="section-title">Choisissez vos dates de mise en avant</div>
-      <div class="section-sub">Sélectionnez une <strong>plage de jours consécutifs</strong> se terminant <strong>le jour de votre événement</strong> (★). Cliquez sur le premier jour, puis sur le jour de l'événement. Minimum 3 jours.</div>
+      <div class="section-sub">Cliquez sur le jour de début de votre mise en avant — tous les jours jusqu'à votre événement (★) seront automatiquement sélectionnés. Minimum 3 jours.</div>
 
       <div class="selected-recap" id="selected-recap"></div>
 
@@ -1032,8 +1028,7 @@
       const monthName = d.toLocaleDateString('fr-FR', { month: 'short' });
       const showMonth = (i === 0) || (d.getDate() === 1);
       const btn = document.createElement('button');
-      const isRangeStart = (rangeStart === key);
-      btn.className = `day-btn${weekend ? ' weekend-day' : ''}${sel ? ' selected' : ''}${isEventDay ? ' event-day' : ''}${isRangeStart ? ' range-start' : ''}`;
+      btn.className = `day-btn${weekend ? ' weekend-day' : ''}${sel ? ' selected' : ''}${isEventDay ? ' event-day' : ''}`;
       btn.title = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + (isEventDay ? ' — Jour de votre événement' : '');
       btn.innerHTML = `<span class="day-name">${dayName}</span><span class="day-date">${dayNum}</span>${showMonth ? `<span class="day-month">${monthName}</span>` : ''}`;
       btn.onclick = () => toggleDay(key);
@@ -1042,8 +1037,6 @@
   }
 
   // Sélection par plage : startDay → eventDay
-  let rangeStart = null;
-
   function toggleDay(key) {
     const eventDateKey = selectedEvent?.dateStart
       ? selectedEvent.dateStart.toISOString().split('T')[0]
@@ -1051,50 +1044,36 @@
     const errorEl = document.getElementById('error-info');
     errorEl.textContent = '';
 
-    // Si pas de jour de début sélectionné encore
-    if (!rangeStart) {
-      // Ne peut pas commencer après l'événement
-      if (eventDateKey && key > eventDateKey) {
-        errorEl.textContent = '⚠️ Vous ne pouvez pas sélectionner un jour après votre événement.';
-        return;
-      }
-      // Ne peut pas commencer sur le jour de l'événement si c'est pour faire 1 seul jour
-      rangeStart = key;
+    // Ne peut pas commencer après l'événement
+    if (eventDateKey && key > eventDateKey) {
+      errorEl.textContent = '⚠️ Vous ne pouvez pas sélectionner un jour après votre événement.';
+      return;
+    }
+
+    // Si pas de jour ★, sélectionner juste ce jour
+    if (!eventDateKey) {
       selectedDays.clear();
       selectedDays.add(key);
-      document.getElementById('min-info').textContent = 'Maintenant cliquez sur le jour de votre événement (★) pour terminer la sélection.';
       buildDaysGrid();
       updatePricing();
       return;
     }
 
-    // Deuxième clic : doit être le jour de l'événement
-    if (eventDateKey && key !== eventDateKey) {
-      errorEl.textContent = '⚠️ Le dernier jour doit être le jour de votre événement (★). Cliquez sur la case marquée ★.';
-      return;
-    }
-
-    // Vérifier que la plage est d'au moins 3 jours
-    const start = new Date(rangeStart);
-    const end = new Date(key);
-    if (end <= start) {
-      errorEl.textContent = '⚠️ Sélectionnez un jour de fin après le jour de début.';
-      rangeStart = null;
-      selectedDays.clear();
-      document.getElementById('min-info').textContent = 'Cliquez sur le jour de début de votre mise en avant.';
-      buildDaysGrid();
-      updatePricing();
-      return;
-    }
-
-    // Remplir tous les jours entre start et end
+    // 1 seul clic : sélectionne tout depuis ce jour jusqu'au jour ★ inclus
     selectedDays.clear();
-    const d = new Date(start);
+    const d = new Date(key);
+    const end = new Date(eventDateKey);
     while (d <= end) {
       selectedDays.add(d.toISOString().split('T')[0]);
       d.setDate(d.getDate() + 1);
     }
-    rangeStart = null;
+
+    // Vérifier minimum 3 jours
+    if (selectedDays.size < 3) {
+      errorEl.textContent = '⚠️ Sélectionnez un jour de début au moins 3 jours avant votre événement.';
+      selectedDays.clear();
+    }
+
     buildDaysGrid();
     updatePricing();
   }
@@ -1142,7 +1121,7 @@
   // UI — NAVIGATION
   // ========================================================
   function goStep(n) {
-    if (n === 2) { rangeStart = null; selectedDays.clear(); }
+    if (n === 2) { selectedDays.clear(); }
     // Cas succès
     if (n === 'success') {
       document.getElementById(`section-${currentStep}`)?.classList.remove('active');
