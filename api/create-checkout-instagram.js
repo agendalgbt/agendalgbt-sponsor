@@ -66,10 +66,22 @@ module.exports = async function handler(req, res) {
     const dateDebut = new Date(sortedDays[0]).toLocaleDateString('fr-FR');
     const dateFin   = new Date(sortedDays[sortedDays.length - 1]).toLocaleDateString('fr-FR');
 
+    // Créer le customer Stripe avec les infos de facturation
+    const customer = await stripe.customers.create({
+      email: customerEmail || undefined,
+      name: billingName || undefined,
+      address: billingName ? {
+        line1: billingAddress || '',
+        postal_code: billingZip || '',
+        city: billingCity || '',
+        country: 'FR',
+      } : undefined,
+    });
+
     // Créer la session Stripe Checkout
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      customer_email: customerEmail,
+      customer: customer.id,
       line_items: [
         {
           price_data: {
@@ -78,7 +90,7 @@ module.exports = async function handler(req, res) {
               name: `${packName} — ${eventName}`,
               description: `Publication du ${dateDebut} au ${dateFin} · @agenda_lgbt`,
             },
-            unit_amount: amountHT || amount, // HT en centimes
+            unit_amount: amountHT || amount,
             tax_behavior: 'exclusive',
           },
           quantity: 1,
@@ -96,8 +108,6 @@ module.exports = async function handler(req, res) {
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success-instagram.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${process.env.NEXT_PUBLIC_BASE_URL}/instagram.html`,
-      customer_creation: 'always',
-      billing_address_collection: 'auto',
       metadata: {
         type:             'instagram',
         pack,
