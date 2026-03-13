@@ -50,6 +50,10 @@ module.exports = async function handler(req, res) {
       datesPublication,
       amount,
       amountHT,
+      billingName,
+      billingAddress,
+      billingZip,
+      billingCity,
     } = req.body;
 
     // Validation
@@ -92,6 +96,8 @@ module.exports = async function handler(req, res) {
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success-instagram.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${process.env.NEXT_PUBLIC_BASE_URL}/instagram.html`,
+      customer_creation: 'always',
+      billing_address_collection: 'auto',
       metadata: {
         type:             'instagram',
         pack,
@@ -110,6 +116,19 @@ module.exports = async function handler(req, res) {
         amount:           String(amount),
       },
     });
+
+    // Mettre à jour le client Stripe avec les infos de facturation
+    if (session.customer && billingName) {
+      await stripe.customers.update(session.customer, {
+        name: billingName,
+        address: {
+          line1: billingAddress || '',
+          postal_code: billingZip || '',
+          city: billingCity || '',
+          country: 'FR',
+        },
+      });
+    }
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({ url: session.url });
