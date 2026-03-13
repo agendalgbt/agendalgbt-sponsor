@@ -459,6 +459,54 @@
       white-space: nowrap;
     }
 
+
+    .billing-section {
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .billing-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .billing-field {
+      margin-bottom: 12px;
+    }
+    .billing-field label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+    }
+    .billing-field input {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .billing-field input:focus {
+      outline: none;
+      border-color: rgba(201,168,76,0.4);
+    }
+    .billing-field input::placeholder { color: var(--text-muted); opacity: 0.5; }
+    .billing-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 480px) { .billing-row { grid-template-columns: 1fr; } }
+
     /* PRICING */
     .pricing-breakdown {
       background: var(--bg3);
@@ -806,6 +854,30 @@
       <div id="recap-content"></div>
 
       <div class="pricing-breakdown" id="recap-pricing"></div>
+
+
+      <!-- Infos de facturation -->
+      <div class="billing-section">
+        <div class="billing-title">🧾 Informations de facturation</div>
+        <div class="billing-field">
+          <label>Nom / Raison sociale *</label>
+          <input type="text" id="billing-name" placeholder="Ex: Association Pride Paris" />
+        </div>
+        <div class="billing-field">
+          <label>Adresse *</label>
+          <input type="text" id="billing-address" placeholder="Ex: 12 rue de la Paix" />
+        </div>
+        <div class="billing-row">
+          <div class="billing-field">
+            <label>Code postal *</label>
+            <input type="text" id="billing-zip" placeholder="75001" maxlength="10" />
+          </div>
+          <div class="billing-field">
+            <label>Ville *</label>
+            <input type="text" id="billing-city" placeholder="Paris" />
+          </div>
+        </div>
+      </div>
 
       <div style="margin-top: 24px; margin-bottom: 16px;">
         <button class="btn-primary" id="btn-pay" onclick="proceedToStripe()">
@@ -1203,6 +1275,16 @@
   // ========================================================
   async function proceedToStripe() {
     const btn = document.getElementById('btn-pay');
+    // Validation champs facturation
+    const bName = document.getElementById('billing-name').value.trim();
+    const bAddr = document.getElementById('billing-address').value.trim();
+    const bZip  = document.getElementById('billing-zip').value.trim();
+    const bCity = document.getElementById('billing-city').value.trim();
+    if (!bName || !bAddr || !bZip || !bCity) {
+      alert('Veuillez remplir tous les champs de facturation.');
+      return;
+    }
+
     btn.disabled = true;
     btn.textContent = '⏳ Redirection…';
 
@@ -1220,8 +1302,12 @@
           eventId: selectedEvent.id,
           eventName: selectedEvent.name,
           days: sortedDays,
-          amountHT: Math.round(total * 100),      // centimes HT
-          amount: Math.round(ttcPay * 100),        // centimes TTC (Stripe facture TTC)
+          amountHT: Math.round(total * 100),
+          amount: Math.round(ttcPay * 100),
+          billingName: document.getElementById('billing-name').value.trim(),
+          billingAddress: document.getElementById('billing-address').value.trim(),
+          billingZip: document.getElementById('billing-zip').value.trim(),
+          billingCity: document.getElementById('billing-city').value.trim(),
         })
       });
 
