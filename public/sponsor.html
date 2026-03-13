@@ -409,18 +409,19 @@
       color: var(--gold-light);
     }
 
-    .day-btn.weekend-day { position: relative; }
+    .day-btn.weekend-day { position: relative; overflow: hidden; }
     .day-btn.weekend-day::after {
       content: '+30%';
       position: absolute;
-      top: -8px;
-      right: -4px;
+      top: 3px;
+      right: 3px;
       background: var(--pink);
       color: white;
-      font-size: 8px;
-      padding: 2px 5px;
+      font-size: 7px;
+      padding: 1px 4px;
       border-radius: 999px;
-      font-weight: 500;
+      font-weight: 600;
+      line-height: 1.4;
     }
 
     .day-btn.event-day {
@@ -441,13 +442,13 @@
     .day-btn.event-day::before {
       content: '★';
       position: absolute;
-      bottom: -8px;
+      bottom: 3px;
       left: 50%;
       transform: translateX(-50%);
       background: var(--pink);
       color: white;
-      font-size: 8px;
-      padding: 2px 5px;
+      font-size: 7px;
+      padding: 1px 4px;
       border-radius: 999px;
       font-weight: 600;
       white-space: nowrap;
@@ -681,8 +682,8 @@
       .day-btn .day-name { font-size: 8px; letter-spacing: 0; }
       .day-btn .day-date { font-size: 10px; }
       .day-btn .day-month { font-size: 7px; }
-      .day-btn.weekend-day::after { font-size: 7px; padding: 1px 3px; bottom: -6px; }
-      .day-btn.event-day::before { font-size: 7px; padding: 1px 3px; bottom: -6px; }
+      .day-btn.weekend-day::after { font-size: 6px; padding: 1px 3px; top: 2px; right: 2px; }
+      .day-btn.event-day::before { font-size: 6px; padding: 1px 3px; bottom: 2px; }
     }
     @media (max-width: 380px) {
       .days-grid { gap: 2px; }
