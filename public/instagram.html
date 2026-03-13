@@ -369,6 +369,7 @@
   const FIREBASE_API_KEY = "AIzaSyBX793d9b70uGXH3E9m_zUt-zK6B6w61gM";
   const BACKEND_URL      = "https://agendalgbt-sponsor.vercel.app";
   const PACK_PRICES      = { express: 7900, soldout: 12900 };
+  const TVA              = 0.20; // 20% TVA France
   const PACK_NAMES       = { express: 'Pack Visibilité Express', soldout: 'Pack Sold Out' };
   // Limites par pack : stories max, post max
   const PACK_LIMITS      = { express: { stories: 2, post: 0 }, soldout: { stories: 3, post: 1 } };
@@ -615,7 +616,9 @@
       ${document.getElementById('transfer-link').value ? `<div class="recap-row"><span class="recap-label">🔗 Lien de transfert</span><span class="recap-value" style="font-size:13px">${document.getElementById('transfer-link').value}</span></div>` : ''}
       <div class="recap-row"><span class="recap-label">📱 Dates Stories</span><span class="recap-value" style="font-size:13px">${storiesStr}</span></div>
       ${postStr ? `<div class="recap-row"><span class="recap-label">📸 Date Post Feed</span><span class="recap-value">${postStr}</span></div>` : ''}
-      <div class="recap-total"><span class="label">Total HT</span><span class="value">${price.toFixed(2)} €</span></div>
+      <div class="recap-row"><span class="recap-label">Total HT</span><span class="recap-value">${price.toFixed(2)} €</span></div>
+      <div class="recap-row"><span class="recap-label">TVA 20%</span><span class="recap-value">${(price * TVA).toFixed(2)} €</span></div>
+      <div class="recap-total"><span class="label">Total TTC</span><span class="value">${(price * (1 + TVA)).toFixed(2)} €</span></div>
     `;
   }
 
@@ -647,7 +650,8 @@
           storyDates:       [...storyDays].sort(),
           postDate:         postDay || null,
           datesPublication: allDates,
-          amount:           PACK_PRICES[selectedPack],
+          amount:           Math.round(PACK_PRICES[selectedPack] * (1 + TVA)), // TTC en centimes
+          amountHT:         PACK_PRICES[selectedPack], // HT en centimes
         })
       });
       const data = await resp.json();
