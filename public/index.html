@@ -123,6 +123,28 @@
       background: rgba(201,168,76,0.06);
     }
 
+    /* MODAL */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px 32px; max-width: 480px; width: 100%;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      background: transparent; border: none; color: var(--text-muted);
+      font-size: 18px; cursor: pointer; line-height: 1;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    .modal-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; }
+    .modal-img { width: 100%; border-radius: 12px; }
+
     /* SEPARATEUR */
     .or-divider {
       position: relative; z-index: 10;
