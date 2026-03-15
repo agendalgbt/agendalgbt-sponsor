@@ -4,11 +4,13 @@
 ```
 agendalgbt-sponsor/
 ├── public/
-│   ├── sponsor.html     ← page organisateur
-│   └── success.html     ← page après paiement Stripe
+│   ├── sponsor.html        ← page organisateur
+│   └── success.html        ← page après paiement Stripe
 ├── api/
 │   ├── create-checkout.js  ← crée session Stripe
-│   └── webhook.js          ← reçoit confirmation + met à jour Firebase
+│   ├── webhook.js          ← reçoit confirmation + met à jour Firebase
+│   ├── webhook-instagram.js← webhook Instagram
+│   └── cron-sponsor.js     ← cron quotidien (activation/désactivation sponsoring)
 ├── vercel.json
 └── package.json
 ```
@@ -19,10 +21,11 @@ Dans ton dashboard Vercel → projet → Settings → Environment Variables :
 
 | Variable | Description |
 |---|---|
-| `STRIPE_SECRET_KEY` | Clé secrète Stripe (sk_test_... ou sk_live_...) |
-| `STRIPE_WEBHOOK_SECRET` | Secret du webhook Stripe (whsec_...) |
+| `STRIPE_SECRET_KEY` | Clé secrète Stripe live (`sk_live_...`) |
+| `STRIPE_WEBHOOK_SECRET` | Secret du webhook Stripe live (`whsec_...`) |
 | `FIREBASE_SERVICE_ACCOUNT` | JSON complet du compte de service Firebase (copier-coller) |
 | `NEXT_PUBLIC_BASE_URL` | URL de ton projet Vercel (ex: https://agendalgbt-sponsor.vercel.app) |
+| `CRON_SECRET` | Secret aléatoire pour sécuriser l'endpoint cron (générer avec `openssl rand -hex 32`) |
 
 ## Déploiement
 
@@ -36,6 +39,15 @@ Dans ton dashboard Vercel → projet → Settings → Environment Variables :
 Dans ton dashboard Stripe → Developers → Webhooks → Add endpoint :
 - URL : `https://ton-projet.vercel.app/api/webhook`
 - Events : `checkout.session.completed`
+- Utiliser les clés **live** (pas test) en production
+
+## Cron Vercel
+
+Le fichier `vercel.json` configure un cron quotidien à **minuit UTC** :
+- Appelle `/api/cron-sponsor` toutes les nuits
+- Active `isSponsored: true` pour les événements dont aujourd'hui est un jour sponsorisé
+- Désactive `isSponsored: false` pour les événements dont le sponsoring est expiré
+- Protégé par le header `Authorization: Bearer <CRON_SECRET>`
 
 ## Collection Firebase créée automatiquement
 
@@ -45,8 +57,12 @@ La collection `sponsorships` est créée automatiquement dans Firestore avec :
 
 ## Firebase — champs mis à jour sur l'événement
 
-- `isSponsored: true`
-- `sponsored_until: Timestamp`
-- `sponsored_days: string[]`
-- `sponsored_at: Timestamp`
-- `stripe_session_id: string`
+Collection `activities` (document `eventId`) :
+
+| Champ | Type | Description |
+|---|---|---|
+| `isSponsored` | `boolean` | `true` si aujourd'hui est un jour sponsorisé |
+| `sponsored_until` | `Timestamp` | Fin du dernier jour sélectionné (23h59) |
+| `sponsored_days` | `string[]` | Liste des jours sponsorisés (format `YYYY-MM-DD`) |
+| `sponsored_at` | `Timestamp` | Date du paiement |
+| `stripe_session_id` | `string` | ID de la session Stripe |
