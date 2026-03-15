@@ -66,9 +66,13 @@ module.exports = async function handler(req, res) {
       // sponsored_until = fin du dernier jour sélectionné (23h59)
       lastDay.setHours(23, 59, 59, 999);
 
+      // isSponsored = true uniquement si aujourd'hui est un jour sponsorisé
+      const todayStr = new Date().toISOString().split('T')[0];
+      const isActiveToday = parsedDays.includes(todayStr);
+
       // Mettre à jour l'événement dans Firebase
       await db.collection('activities').doc(eventId).update({
-        isSponsored: true,
+        isSponsored: isActiveToday,
         sponsored_until: admin.firestore.Timestamp.fromDate(lastDay),
         sponsored_days: parsedDays,
         sponsored_at: admin.firestore.FieldValue.serverTimestamp(),
