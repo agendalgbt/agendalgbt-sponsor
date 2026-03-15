@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron-sponsor",
+      "schedule": "0 0 * * *"
+    }
+  ],
   "rewrites": [
     { "source": "/", "destination": "/index.html" }
   ],
