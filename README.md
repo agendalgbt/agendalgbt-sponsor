@@ -45,7 +45,7 @@ Dans ton dashboard Stripe → Developers → Webhooks → Add endpoint :
 
 ## Cron Vercel
 
-Le fichier `vercel.json` configure un cron quotidien à **minuit UTC** :
+Le fichier `vercel.json` configure un cron quotidien à **5h UTC (6h/7h heure française)** :
 - Appelle `/api/cron-sponsor` toutes les nuits
 - Active `isSponsored: true` pour les événements dont aujourd'hui est un jour sponsorisé
 - Désactive `isSponsored: false` pour les événements dont le sponsoring est expiré

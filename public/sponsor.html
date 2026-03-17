@@ -1244,7 +1244,7 @@
   }
 
   function buildRecap() {
-    const { total, tier, normalDays, weekendDays } = calcTotal();
+    const { total, priceNormal, priceWeekend, normalDays, weekendDays } = calcTotal();
     const sortedDays = [...selectedDays].sort();
 
     document.getElementById('recap-content').innerHTML = `

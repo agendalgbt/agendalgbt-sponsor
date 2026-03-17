@@ -13,6 +13,11 @@ if (!admin.apps.length) {
 }
 
 module.exports = async function handler(req, res) {
+  if (!process.env.STRIPE_TAX_RATE_ID) {
+    console.error('STRIPE_TAX_RATE_ID non configuré');
+    return res.status(500).json({ error: 'Configuration TVA manquante — contactez l\'administrateur.' });
+  }
+
   // CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');

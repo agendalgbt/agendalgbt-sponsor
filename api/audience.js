@@ -29,14 +29,28 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const snapshot = await db.collection('users').get();
     let count = 0;
-    snapshot.forEach(doc => {
-      const loc = doc.data().last_known_location;
-      if (!loc) return;
-      const d = haversine(lat, lng, loc.latitude, loc.longitude);
-      if (d <= 30) count++;
-    });
+    let lastDoc = null;
+    const BATCH = 500;
+
+    while (true) {
+      let query = db.collection('users').limit(BATCH);
+      if (lastDoc) query = query.startAfter(lastDoc);
+      const snapshot = await query.get();
+
+      if (snapshot.empty) break;
+
+      snapshot.forEach(doc => {
+        const loc = doc.data().last_known_location;
+        if (!loc) return;
+        const d = haversine(lat, lng, loc.latitude, loc.longitude);
+        if (d <= 30) count++;
+      });
+
+      lastDoc = snapshot.docs[snapshot.docs.length - 1];
+      if (snapshot.size < BATCH) break;
+    }
+
     return res.status(200).json({ count });
   } catch(e) {
     console.error('Audience error:', e);
