@@ -3,15 +3,6 @@ const admin = require('firebase-admin');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Augmenter la limite bodyParser pour les uploads base64
-module.exports.config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-  },
-};
-
 // Initialiser Firebase Admin (une seule fois)
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -146,6 +137,15 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     console.error('Checkout instagram error:', error);
     res.setHeader('Access-Control-Allow-Origin', '*');
-    return res.status(500).json({ error: error.message, stack: error.stack });
+    return res.status(500).json({ error: error.message });
   }
+};
+
+// Augmenter la limite bodyParser pour les uploads base64
+module.exports.config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+  },
 };
