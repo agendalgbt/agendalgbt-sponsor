@@ -22,7 +22,9 @@ Dans ton dashboard Vercel → projet → Settings → Environment Variables :
 | Variable | Description |
 |---|---|
 | `STRIPE_SECRET_KEY` | Clé secrète Stripe live (`sk_live_...`) |
-| `STRIPE_WEBHOOK_SECRET` | Secret du webhook Stripe live (`whsec_...`) |
+| `STRIPE_WEBHOOK_SECRET` | Secret du webhook Stripe sponsoring live (`whsec_...`) |
+| `STRIPE_WEBHOOK_SECRET_INSTAGRAM` | Secret du webhook Stripe Instagram live (`whsec_...`) |
+| `STRIPE_TAX_RATE_ID` | ID du taux de TVA Stripe (`txr_...`) |
 | `FIREBASE_SERVICE_ACCOUNT` | JSON complet du compte de service Firebase (copier-coller) |
 | `NEXT_PUBLIC_BASE_URL` | URL de ton projet Vercel (ex: https://agendalgbt-sponsor.vercel.app) |
 | `CRON_SECRET` | Secret aléatoire pour sécuriser l'endpoint cron (générer avec `openssl rand -hex 32`) |

@@ -13,13 +13,6 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// Désactiver le body parser de Vercel pour lire le raw body (requis par Stripe)
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -106,4 +99,11 @@ module.exports = async function handler(req, res) {
   }
 
   return res.status(200).json({ received: true });
+};
+
+// Désactiver le body parser de Vercel pour lire le raw body (requis par Stripe)
+module.exports.config = {
+  api: {
+    bodyParser: false,
+  },
 };
