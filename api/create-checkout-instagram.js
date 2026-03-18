@@ -120,6 +120,11 @@ module.exports = async function handler(req, res) {
         datesPublication: JSON.stringify(sortedDays),
 
         amount:           String(amount),
+        amountHT:         String(amountHT || amount),
+        billingName:      billingName    || '',
+        billingAddress:   billingAddress || '',
+        billingZip:       billingZip     || '',
+        billingCity:      billingCity    || '',
       },
     });
 
