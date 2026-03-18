@@ -118,6 +118,19 @@ module.exports = async function handler(req, res) {
           .map(d => `<li style="padding:2px 0;">${d}</li>`)
           .join('');
 
+        // Récupérer l'URL PDF de la facture Stripe
+        let invoicePdfUrl = null;
+        let invoiceHostedUrl = null;
+        if (session.invoice) {
+          try {
+            const invoice = await stripe.invoices.retrieve(session.invoice);
+            invoicePdfUrl = invoice.invoice_pdf;
+            invoiceHostedUrl = invoice.hosted_invoice_url;
+          } catch (e) {
+            console.error('Erreur récupération facture:', e.message);
+          }
+        }
+
         await resend.emails.send({
           from: 'Agenda LGBT <no-reply@agendalgbt.com>',
           to: orgaEmail,
@@ -175,7 +188,13 @@ module.exports = async function handler(req, res) {
                 ` : ''}
 
                 <!-- Facture -->
-                <p style="margin-top:32px;">Votre facture est disponible dans votre email de reçu Stripe.</p>
+                ${invoicePdfUrl ? `
+                <h3 style="color:#c0398a;margin-top:32px;margin-bottom:12px;font-size:15px;text-transform:uppercase;letter-spacing:0.5px;">Facture</h3>
+                <p style="margin:0;">
+                  <a href="${invoicePdfUrl}" style="display:inline-block;background:#c0398a;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px;">Télécharger la facture PDF</a>
+                  ${invoiceHostedUrl ? `&nbsp; <a href="${invoiceHostedUrl}" style="color:#c0398a;font-size:14px;">Voir en ligne</a>` : ''}
+                </p>
+                ` : ''}
 
                 <!-- Référence -->
                 <p style="color:#aaa;font-size:12px;margin-top:4px;">Référence : ${session.id}</p>
