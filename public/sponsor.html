@@ -883,6 +883,10 @@
         </div>
       </div>
 
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;line-height:1.6">
+        En procédant au paiement, vous acceptez nos <a href="https://foamy-hygienic-7f7.notion.site/CONDITIONS-G-N-RALES-DE-VENTE-CGV-3270bca09cae80bdb43dfe2971a0988b?source=copy_link" target="_blank" rel="noopener" style="color:var(--gold)">conditions générales</a>. Votre réservation sera confirmée par email après validation du paiement.
+      </p>
+
       <div style="margin-top: 24px; margin-bottom: 16px;">
         <button class="btn-primary" id="btn-pay" onclick="proceedToStripe()">
           💳 Payer via Stripe
@@ -910,7 +914,7 @@
 </div>
 
 <footer>
-  <p>© 2025 AgendaLGBT · <a href="#">Conditions générales</a> · <a href="#">Contact</a></p>
+  <p>© 2025 AgendaLGBT · <a href="https://foamy-hygienic-7f7.notion.site/CONDITIONS-G-N-RALES-DE-VENTE-CGV-3270bca09cae80bdb43dfe2971a0988b?source=copy_link" target="_blank" rel="noopener">Conditions générales</a> · <a href="#">Contact</a></p>
 </footer>
 
 <script>
@@ -919,8 +923,7 @@
   // ========================================================
   const FIREBASE_PROJECT = "agendalgbt-app";
   const FIREBASE_API_KEY = "AIzaSyBX793d9b70uGXH3E9m_zUt-zK6B6w61gM";
-  const STRIPE_PUBLIC_KEY = "pk_test_VOTRE_CLE_STRIPE"; // ← à remplacer
-  const BACKEND_URL = "https://agendalgbt-sponsor.vercel.app";
+const BACKEND_URL = "https://agendalgbt-sponsor.vercel.app";
 
   // Tarif par utilisateur par jour
   const TARIF_PAR_USER = 0.012;       // €/user/jour
