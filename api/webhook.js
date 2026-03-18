@@ -192,19 +192,6 @@ module.exports = async function handler(req, res) {
         console.log(`📧 Email de confirmation envoyé à ${orgaEmail}`);
       }
 
-      // Envoyer la facture Stripe par email si elle existe
-      if (session.invoice) {
-        try {
-          const invoice = await stripe.invoices.retrieve(session.invoice);
-          if (invoice.status === 'draft') {
-            await stripe.invoices.finalizeInvoice(session.invoice);
-          }
-          await stripe.invoices.sendInvoice(session.invoice);
-          console.log(`🧾 Facture Stripe envoyée: ${session.invoice}`);
-        } catch (invoiceErr) {
-          console.error('Erreur envoi facture Stripe:', invoiceErr.message);
-        }
-      }
 
     } catch (err) {
       console.error('Firebase update error:', err);
