@@ -83,6 +83,10 @@ module.exports = async function handler(req, res) {
         amountHT: String(amountHT || amount),
         amount: String(amount),
         orgaEmail: orgaEmail || '',
+        billingName: billingName || '',
+        billingAddress: billingAddress || '',
+        billingZip: billingZip || '',
+        billingCity: billingCity || '',
       },
     });
 
