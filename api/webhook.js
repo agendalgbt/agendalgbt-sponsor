@@ -119,7 +119,7 @@ module.exports = async function handler(req, res) {
           .join('');
 
         await resend.emails.send({
-          from: 'AgendaLGBT <no-reply@agendalgbt.com>',
+          from: 'Agenda LGBT <no-reply@agendalgbt.com>',
           to: orgaEmail,
           subject: `Sponsorisation confirmée — ${eventName}`,
           html: `
@@ -134,7 +134,7 @@ module.exports = async function handler(req, res) {
               <!-- Body -->
               <div style="padding:32px 24px;background:#fff;border:1px solid #eee;border-top:none;border-radius:0 0 8px 8px;">
                 <p style="margin-top:0;">Bonjour,</p>
-                <p>Votre paiement a bien été reçu. L'événement <strong>${eventName}</strong> sera mis en avant sur AgendaLGBT aux dates sélectionnées.</p>
+                <p>Votre paiement a bien été reçu. L'événement <strong>${eventName}</strong> sera mis en avant sur Agenda LGBT aux dates sélectionnées.</p>
 
                 <!-- Récap événement -->
                 <h3 style="color:#c0398a;margin-top:32px;margin-bottom:12px;font-size:15px;text-transform:uppercase;letter-spacing:0.5px;">Récapitulatif</h3>
@@ -183,7 +183,7 @@ module.exports = async function handler(req, res) {
                 <!-- Footer -->
                 <hr style="border:none;border-top:1px solid #eee;margin:32px 0 24px;">
                 <p style="color:#aaa;font-size:12px;text-align:center;margin:0;">
-                  AgendaLGBT · <a href="https://agendalgbt.com" style="color:#c0398a;text-decoration:none;">agendalgbt.com</a>
+                  Agenda LGBT · <a href="https://agendalgbt.com" style="color:#c0398a;text-decoration:none;">agendalgbt.com</a>
                 </p>
               </div>
             </div>
@@ -195,6 +195,10 @@ module.exports = async function handler(req, res) {
       // Envoyer la facture Stripe par email si elle existe
       if (session.invoice) {
         try {
+          const invoice = await stripe.invoices.retrieve(session.invoice);
+          if (invoice.status === 'draft') {
+            await stripe.invoices.finalizeInvoice(session.invoice);
+          }
           await stripe.invoices.sendInvoice(session.invoice);
           console.log(`🧾 Facture Stripe envoyée: ${session.invoice}`);
         } catch (invoiceErr) {
