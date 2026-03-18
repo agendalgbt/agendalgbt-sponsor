@@ -127,7 +127,7 @@ module.exports = async function handler(req, res) {
 
               <!-- Header -->
               <div style="background:#c0398a;padding:32px 24px;text-align:center;border-radius:8px 8px 0 0;">
-                <p style="color:white;font-size:22px;font-weight:bold;margin:0;">AgendaLGBT</p>
+                <p style="color:white;font-size:22px;font-weight:bold;margin:0;">Agenda LGBT</p>
                 <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:15px;">Confirmation de sponsorisation</p>
               </div>
 
@@ -190,6 +190,16 @@ module.exports = async function handler(req, res) {
           `,
         });
         console.log(`📧 Email de confirmation envoyé à ${orgaEmail}`);
+      }
+
+      // Envoyer la facture Stripe par email si elle existe
+      if (session.invoice) {
+        try {
+          await stripe.invoices.sendInvoice(session.invoice);
+          console.log(`🧾 Facture Stripe envoyée: ${session.invoice}`);
+        } catch (invoiceErr) {
+          console.error('Erreur envoi facture Stripe:', invoiceErr.message);
+        }
       }
 
     } catch (err) {
