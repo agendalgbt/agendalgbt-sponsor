@@ -69,7 +69,7 @@ module.exports = async function handler(req, res) {
       invoice_creation: {
         enabled: true,
         invoice_data: {
-          description: `Sponsorisation AgendaLGBT — ${eventName} · du ${dateDebut} au ${dateFin}`,
+          description: `Sponsorisation Agenda LGBT — ${eventName} · du ${dateDebut} au ${dateFin}`,
           metadata: { eventId, eventName },
           rendering_options: { amount_tax_display: 'include_inclusive_tax' },
         },
