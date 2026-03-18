@@ -21,13 +21,23 @@ Dans ton dashboard Vercel → projet → Settings → Environment Variables :
 
 | Variable | Description |
 |---|---|
-| `STRIPE_SECRET_KEY` | Clé secrète Stripe live (`sk_live_...`) |
-| `STRIPE_WEBHOOK_SECRET` | Secret du webhook Stripe sponsoring live (`whsec_...`) |
-| `STRIPE_WEBHOOK_SECRET_INSTAGRAM` | Secret du webhook Stripe Instagram live (`whsec_...`) |
+| `STRIPE_SECRET_KEY` | Clé secrète Stripe **live** (`sk_live_...`) — utiliser `sk_test_...` en preview/test |
+| `STRIPE_WEBHOOK_SECRET` | Secret du webhook Stripe sponsoring (`whsec_...`) — un secret différent par env |
+| `STRIPE_WEBHOOK_SECRET_INSTAGRAM` | Secret du webhook Stripe Instagram (`whsec_...`) |
 | `STRIPE_TAX_RATE_ID` | ID du taux de TVA Stripe (`txr_...`) |
 | `FIREBASE_SERVICE_ACCOUNT` | JSON complet du compte de service Firebase (copier-coller) |
-| `NEXT_PUBLIC_BASE_URL` | URL de ton projet Vercel (ex: https://agendalgbt-sponsor.vercel.app) |
+| `NEXT_PUBLIC_BASE_URL` | URL du projet (ex: `https://agendalgbt-sponsor.vercel.app`) |
 | `CRON_SECRET` | Secret aléatoire pour sécuriser l'endpoint cron (générer avec `openssl rand -hex 32`) |
+| `RESEND_API_KEY` | Clé API Resend pour l'envoi des emails de confirmation (`re_...`) |
+
+### Environnement de test (Vercel Preview)
+
+Dans Vercel → Settings → Environment Variables, tu peux définir des valeurs **différentes par environnement** (Production / Preview / Development). Pour tester sans impacter la prod :
+
+- **Preview** : mettre `STRIPE_SECRET_KEY = sk_test_...` et le `STRIPE_WEBHOOK_SECRET` correspondant au webhook test Stripe
+- **Production** : garder `sk_live_...`
+
+Le webhook Stripe test doit pointer vers l'URL de preview Vercel (ex: `https://agendalgbt-sponsor-git-preview.vercel.app/api/webhook`).
 
 ## Déploiement
 

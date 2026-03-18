@@ -1,7 +1,9 @@
 const Stripe = require('stripe');
 const admin = require('firebase-admin');
+const { Resend } = require('resend');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Initialiser Firebase Admin (une seule fois)
 if (!admin.apps.length) {
@@ -82,10 +84,40 @@ module.exports = async function handler(req, res) {
         amount: session.amount_total, // en centimes
         stripe_session_id: session.id,
         customer_email: session.customer_details?.email || '',
+        orga_email: session.metadata.orgaEmail || '',
         status: 'active',
         created_at: admin.firestore.FieldValue.serverTimestamp(),
         sponsored_until: admin.firestore.Timestamp.fromDate(lastDay),
       });
+
+      // Envoyer un email de confirmation à l'organisateur
+      const orgaEmail = session.metadata.orgaEmail;
+      if (orgaEmail && process.env.RESEND_API_KEY) {
+        const eventName = session.metadata.eventName;
+        const dateDebut = new Date(sortedDays[0]).toLocaleDateString('fr-FR');
+        const dateFin = new Date(sortedDays[sortedDays.length - 1]).toLocaleDateString('fr-FR');
+        const montantTTC = ((session.amount_total || 0) / 100).toFixed(2).replace('.', ',');
+
+        await resend.emails.send({
+          from: 'AgendaLGBT <no-reply@agendalgbt.com>',
+          to: orgaEmail,
+          subject: `✅ Sponsorisation confirmée — ${eventName}`,
+          html: `
+            <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;">
+              <h2 style="color:#c0398a;">Votre sponsorisation est confirmée !</h2>
+              <p>Bonjour,</p>
+              <p>Votre paiement a bien été reçu. Votre événement <strong>${eventName}</strong> sera mis en avant sur AgendaLGBT.</p>
+              <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+                <tr><td style="padding:8px 0;color:#666;">Période</td><td style="padding:8px 0;"><strong>du ${dateDebut} au ${dateFin}</strong> (${parsedDays.length} jour(s))</td></tr>
+                <tr><td style="padding:8px 0;color:#666;">Montant TTC</td><td style="padding:8px 0;"><strong>${montantTTC} €</strong></td></tr>
+              </table>
+              <p>Votre facture sera disponible dans votre email de reçu Stripe.</p>
+              <p style="color:#666;font-size:13px;margin-top:32px;">AgendaLGBT · <a href="https://agendalgbt.com" style="color:#c0398a;">agendalgbt.com</a></p>
+            </div>
+          `,
+        });
+        console.log(`📧 Email de confirmation envoyé à ${orgaEmail}`);
+      }
 
     } catch (err) {
       console.error('Firebase update error:', err);

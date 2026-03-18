@@ -21,7 +21,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { eventId, eventName, days, amount, amountHT, billingName, billingAddress, billingZip, billingCity } = req.body;
+    const { eventId, eventName, days, amount, amountHT, billingName, billingAddress, billingZip, billingCity, orgaEmail } = req.body;
 
     if (!eventId || !eventName || !days || !amount) {
       return res.status(400).json({ error: 'Paramètres manquants' });
@@ -75,12 +75,14 @@ module.exports = async function handler(req, res) {
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/sponsor.html`,
+      customer_email: orgaEmail || undefined,
       metadata: {
         eventId,
         eventName,
         days: JSON.stringify(days),
         amountHT: String(amountHT || amount),
         amount: String(amount),
+        orgaEmail: orgaEmail || '',
       },
     });
 
