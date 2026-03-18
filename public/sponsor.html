@@ -877,6 +877,10 @@
             <input type="text" id="billing-city" placeholder="Paris" />
           </div>
         </div>
+        <div class="billing-field">
+          <label>Email de confirmation *</label>
+          <input type="email" id="billing-email" placeholder="contact@monassociation.fr" />
+        </div>
       </div>
 
       <div style="margin-top: 24px; margin-bottom: 16px;">
@@ -1308,6 +1312,7 @@
           billingAddress: document.getElementById('billing-address').value.trim(),
           billingZip: document.getElementById('billing-zip').value.trim(),
           billingCity: document.getElementById('billing-city').value.trim(),
+          orgaEmail: document.getElementById('billing-email').value.trim(),
         })
       });
 
