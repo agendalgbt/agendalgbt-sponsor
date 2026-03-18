@@ -223,6 +223,52 @@ module.exports = async function handler(req, res) {
         console.log(`📧 Email de confirmation Instagram envoyé à ${customerEmail}`);
       }
 
+      // Email interne de notification
+      if (process.env.RESEND_API_KEY) {
+        const amountTTC  = session.amount_total || 0;
+        const amountHT   = parseInt(meta.amountHT || '0', 10);
+        const amountTVA  = amountTTC - amountHT;
+        const fmt        = (cents) => (cents / 100).toFixed(2).replace('.', ',');
+        const datesPublication = JSON.parse(meta.datesPublication || '[]').sort();
+        const dateDebut  = new Date(datesPublication[0]).toLocaleDateString('fr-FR');
+        const dateFin    = new Date(datesPublication[datesPublication.length - 1]).toLocaleDateString('fr-FR');
+        const storyList  = storyDates.sort()
+          .map(d => new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))
+          .map(d => `<li>${d}</li>`).join('');
+
+        await resend.emails.send({
+          from:    'Agenda LGBT <no-reply@agendalgbt.com>',
+          to:      'hello@agendalgbt.com',
+          subject: `[Nouvelle résa Instagram] ${meta.eventName} — ${fmt(amountTTC)} € TTC`,
+          html: `
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+              <div style="background:#1a1a26;padding:24px;border-radius:8px 8px 0 0;">
+                <p style="color:#e8609a;font-size:18px;font-weight:bold;margin:0;">Nouvelle réservation · Instagram</p>
+              </div>
+              <div style="padding:24px;background:#fff;border:1px solid #eee;border-top:none;border-radius:0 0 8px 8px;">
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;width:40%;">Pack</td><td style="padding:8px 0;"><strong>${meta.packName || meta.pack}</strong></td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Événement</td><td style="padding:8px 0;"><strong>${meta.eventName}</strong></td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Date événement</td><td style="padding:8px 0;">${meta.eventDate || '—'}</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Compte Instagram</td><td style="padding:8px 0;">@${meta.instaHandle}</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Email client</td><td style="padding:8px 0;">${meta.customerEmail || session.customer_details?.email || '—'}</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Facturation</td><td style="padding:8px 0;">${meta.billingName || '—'}${meta.billingAddress ? '<br>' + meta.billingAddress : ''}${meta.billingZip || meta.billingCity ? '<br>' + (meta.billingZip || '') + ' ' + (meta.billingCity || '') : ''}</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Lien billetterie</td><td style="padding:8px 0;">${meta.ticketLink ? `<a href="${meta.ticketLink}">${meta.ticketLink}</a>` : '—'}</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Brief</td><td style="padding:8px 0;font-size:13px;">${meta.brief || '—'}</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;vertical-align:top;">Stories</td><td style="padding:8px 0;">${storyDates.length} jour(s) · du ${dateDebut} au ${dateFin}<ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:#444;">${storyList}</ul></td></tr>
+                  ${postDate ? `<tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Post</td><td style="padding:8px 0;">${new Date(postDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</td></tr>` : ''}
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Montant HT</td><td style="padding:8px 0;">${fmt(amountHT)} €</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">TVA (20 %)</td><td style="padding:8px 0;">${fmt(amountTVA)} €</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Total TTC</td><td style="padding:8px 0;font-size:16px;"><strong>${fmt(amountTTC)} €</strong></td></tr>
+                  <tr><td style="padding:8px 0;color:#666;">Référence Stripe</td><td style="padding:8px 0;font-size:12px;">${session.id}</td></tr>
+                </table>
+              </div>
+            </div>
+          `,
+        });
+        console.log('📧 Email interne envoyé à hello@agendalgbt.com');
+      }
+
     } catch (err) {
       console.error('Firebase error:', err);
       return res.status(500).json({ error: err.message });

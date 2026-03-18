@@ -211,6 +211,46 @@ module.exports = async function handler(req, res) {
         console.log(`📧 Email de confirmation envoyé à ${orgaEmail}`);
       }
 
+      // Email interne de notification
+      if (process.env.RESEND_API_KEY) {
+        const eventName  = session.metadata.eventName;
+        const amountTTC  = session.amount_total || 0;
+        const amountHT   = parseInt(session.metadata.amountHT || '0', 10);
+        const amountTVA  = amountTTC - amountHT;
+        const fmt        = (cents) => (cents / 100).toFixed(2).replace('.', ',');
+        const dateDebut  = new Date(sortedDays[0]).toLocaleDateString('fr-FR');
+        const dateFin    = new Date(sortedDays[sortedDays.length - 1]).toLocaleDateString('fr-FR');
+        const daysList   = sortedDays
+          .map(d => new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))
+          .map(d => `<li>${d}</li>`).join('');
+
+        await resend.emails.send({
+          from:    'Agenda LGBT <no-reply@agendalgbt.com>',
+          to:      'hello@agendalgbt.com',
+          subject: `[Nouvelle résa App] ${eventName} — ${fmt(amountTTC)} € TTC`,
+          html: `
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+              <div style="background:#1a1a26;padding:24px;border-radius:8px 8px 0 0;">
+                <p style="color:#e8609a;font-size:18px;font-weight:bold;margin:0;">Nouvelle réservation · Application</p>
+              </div>
+              <div style="padding:24px;background:#fff;border:1px solid #eee;border-top:none;border-radius:0 0 8px 8px;">
+                <table style="width:100%;border-collapse:collapse;">
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;width:40%;">Événement</td><td style="padding:8px 0;"><strong>${eventName}</strong></td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">ID événement</td><td style="padding:8px 0;">${eventId}</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Email client</td><td style="padding:8px 0;">${session.metadata.orgaEmail || session.customer_details?.email || '—'}</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Facturation</td><td style="padding:8px 0;">${session.metadata.billingName || '—'}${session.metadata.billingAddress ? '<br>' + session.metadata.billingAddress : ''}${session.metadata.billingZip || session.metadata.billingCity ? '<br>' + (session.metadata.billingZip || '') + ' ' + (session.metadata.billingCity || '') : ''}</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Jours sponsorisés</td><td style="padding:8px 0;">${parsedDays.length} jour(s) · du ${dateDebut} au ${dateFin}<ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:#444;">${daysList}</ul></td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Montant HT</td><td style="padding:8px 0;">${fmt(amountHT)} €</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">TVA (20 %)</td><td style="padding:8px 0;">${fmt(amountTVA)} €</td></tr>
+                  <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px 0;color:#666;">Total TTC</td><td style="padding:8px 0;font-size:16px;"><strong>${fmt(amountTTC)} €</strong></td></tr>
+                  <tr><td style="padding:8px 0;color:#666;">Référence Stripe</td><td style="padding:8px 0;font-size:12px;">${session.id}</td></tr>
+                </table>
+              </div>
+            </div>
+          `,
+        });
+        console.log('📧 Email interne envoyé à hello@agendalgbt.com');
+      }
 
     } catch (err) {
       console.error('Firebase update error:', err);
