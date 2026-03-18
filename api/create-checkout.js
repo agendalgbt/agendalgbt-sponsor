@@ -38,6 +38,7 @@ module.exports = async function handler(req, res) {
     // Créer le customer Stripe avec les infos de facturation
     const customer = await stripe.customers.create({
       name: billingName || undefined,
+      email: orgaEmail || undefined,
       address: billingName ? {
         line1: billingAddress || '',
         postal_code: billingZip || '',
@@ -75,7 +76,6 @@ module.exports = async function handler(req, res) {
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/sponsor.html`,
-      customer_email: orgaEmail || undefined,
       metadata: {
         eventId,
         eventName,
