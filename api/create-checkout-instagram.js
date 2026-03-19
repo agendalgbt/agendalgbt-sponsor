@@ -94,6 +94,7 @@ module.exports = async function handler(req, res) {
         },
       ],
       mode: 'payment',
+      allow_promotion_codes: true,
       invoice_creation: {
         enabled: true,
         invoice_data: {
