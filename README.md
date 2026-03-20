@@ -1,41 +1,74 @@
-# AgendaLGBT — Page Sponsorisation
+# AgendaLGBT — Système de Sponsorisation
 
-## Structure
+Plateforme de sponsorisation pour AgendaLGBT, gérant deux types de sponsoring : **événements dans l'app** et **publications Instagram**.
+
+## Structure du projet
+
 ```
 agendalgbt-sponsor/
 ├── public/
-│   ├── sponsor.html        ← page organisateur
-│   └── success.html        ← page après paiement Stripe
+│   ├── index.html                  ← page d'accueil (choix du type de sponsoring)
+│   ├── sponsor.html                ← formulaire sponsoring événement (app)
+│   ├── success.html                ← page de confirmation après paiement sponsoring
+│   ├── instagram.html              ← formulaire sponsoring Instagram
+│   └── success-instagram.html      ← page de confirmation après paiement Instagram
 ├── api/
-│   ├── create-checkout.js  ← crée session Stripe
-│   ├── webhook.js          ← reçoit confirmation + met à jour Firebase
-│   ├── webhook-instagram.js← webhook Instagram
-│   └── cron-sponsor.js     ← cron quotidien (activation/désactivation sponsoring)
+│   ├── audience.js                 ← calcule l'audience dans un rayon de 30 km
+│   ├── create-checkout.js          ← crée une session Stripe pour le sponsoring événement
+│   ├── create-checkout-instagram.js← crée une session Stripe pour le sponsoring Instagram
+│   ├── webhook.js                  ← webhook Stripe sponsoring événement
+│   ├── webhook-instagram.js        ← webhook Stripe sponsoring Instagram
+│   └── cron-sponsor.js             ← cron quotidien (activation/désactivation du sponsoring)
 ├── vercel.json
 └── package.json
 ```
+
+## Types de sponsoring
+
+### 1. Sponsoring événement (App)
+- Sélection de jours spécifiques (minimum 3 jours)
+- Mise en avant de l'événement dans l'application AgendaLGBT
+- Estimation de l'audience à proximité (rayon 30 km via formule de Haversine)
+- Facturation avec TVA 20 % et génération automatique de facture Stripe
+
+### 2. Sponsoring Instagram
+- Packs de publications (stories et/ou posts sur @agenda_lgbt)
+- Sélection des dates de stories et de post
+- Upload de fichiers (visuels stories, image post)
+- Gestion du calendrier de réservation (évite les doublons)
+
+## API endpoints
+
+| Endpoint | Méthode | Description |
+|---|---|---|
+| `/api/audience` | GET | Retourne le nombre d'utilisateurs dans un rayon de 30 km (`?lat=&lng=`) |
+| `/api/create-checkout` | POST | Crée une session Stripe pour le sponsoring événement |
+| `/api/create-checkout-instagram` | POST | Crée une session Stripe pour le sponsoring Instagram |
+| `/api/webhook` | POST | Webhook Stripe — traite les paiements sponsoring événement |
+| `/api/webhook-instagram` | POST | Webhook Stripe — traite les paiements sponsoring Instagram |
+| `/api/cron-sponsor` | GET | Endpoint cron : met à jour les flags `isSponsored` dans Firebase |
 
 ## Variables d'environnement à configurer dans Vercel
 
 Dans ton dashboard Vercel → projet → Settings → Environment Variables :
 
-| Variable | Description |
-|---|---|
-| `STRIPE_SECRET_KEY` | Clé secrète Stripe **live** (`sk_live_...`) — utiliser `sk_test_...` en preview/test |
-| `STRIPE_WEBHOOK_SECRET` | Secret du webhook Stripe sponsoring (`whsec_...`) — un secret différent par env |
-| `STRIPE_WEBHOOK_SECRET_INSTAGRAM` | Secret du webhook Stripe Instagram (`whsec_...`) |
-| `STRIPE_TAX_RATE_ID` | ID du taux de TVA Stripe (`txr_...`) |
-| `FIREBASE_SERVICE_ACCOUNT` | JSON complet du compte de service Firebase (copier-coller) |
-| `NEXT_PUBLIC_BASE_URL` | URL du projet (ex: `https://agendalgbt-sponsor.vercel.app`) |
-| `CRON_SECRET` | Secret aléatoire pour sécuriser l'endpoint cron (générer avec `openssl rand -hex 32`) |
-| `RESEND_API_KEY` | Clé API Resend pour l'envoi des emails de confirmation (`re_...`) |
+| Variable | Format | Description |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | `sk_live_...` / `sk_test_...` | Clé secrète Stripe (live en prod, test en preview) |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Secret webhook Stripe — sponsoring événement |
+| `STRIPE_WEBHOOK_SECRET_INSTAGRAM` | `whsec_...` | Secret webhook Stripe — sponsoring Instagram |
+| `STRIPE_TAX_RATE_ID` | `txr_...` | ID du taux de TVA Stripe (20 %) |
+| `FIREBASE_SERVICE_ACCOUNT` | JSON complet | Compte de service Firebase (copier-coller le JSON) |
+| `NEXT_PUBLIC_BASE_URL` | URL | URL du projet (ex: `https://agendalgbt-sponsor.vercel.app`) |
+| `CRON_SECRET` | chaîne aléatoire | Bearer token sécurisant l'endpoint cron (`openssl rand -hex 32`) |
+| `RESEND_API_KEY` | `re_...` | Clé API Resend pour l'envoi des emails de confirmation |
 
 ### Environnement de test (Vercel Preview)
 
-Dans Vercel → Settings → Environment Variables, tu peux définir des valeurs **différentes par environnement** (Production / Preview / Development). Pour tester sans impacter la prod :
+Dans Vercel → Settings → Environment Variables, tu peux définir des valeurs **différentes par environnement** (Production / Preview / Development) :
 
-- **Preview** : mettre `STRIPE_SECRET_KEY = sk_test_...` et le `STRIPE_WEBHOOK_SECRET` correspondant au webhook test Stripe
-- **Production** : garder `sk_live_...`
+- **Preview** : `STRIPE_SECRET_KEY = sk_test_...` + `STRIPE_WEBHOOK_SECRET` correspondant au webhook test Stripe
+- **Production** : `STRIPE_SECRET_KEY = sk_live_...`
 
 Le webhook Stripe test doit pointer vers l'URL de preview Vercel (ex: `https://agendalgbt-sponsor-git-preview.vercel.app/api/webhook`).
 
@@ -44,14 +77,21 @@ Le webhook Stripe test doit pointer vers l'URL de preview Vercel (ex: `https://a
 1. Push ce dossier sur GitHub
 2. Connecte Vercel à ce repo GitHub
 3. Configure les variables d'environnement
-4. Configure le webhook Stripe → URL : `https://ton-projet.vercel.app/api/webhook`
+4. Configure les webhooks Stripe (voir ci-dessous)
 
-## Webhook Stripe
+## Webhooks Stripe
 
 Dans ton dashboard Stripe → Developers → Webhooks → Add endpoint :
+
+**Sponsoring événement :**
 - URL : `https://ton-projet.vercel.app/api/webhook`
-- Events : `checkout.session.completed`
-- Utiliser les clés **live** (pas test) en production
+- Event : `checkout.session.completed`
+
+**Sponsoring Instagram :**
+- URL : `https://ton-projet.vercel.app/api/webhook-instagram`
+- Event : `checkout.session.completed`
+
+Utiliser les clés **live** (pas test) en production.
 
 ## Cron Vercel
 
@@ -61,20 +101,78 @@ Le fichier `vercel.json` configure un cron quotidien à **5h UTC (6h/7h heure fr
 - Désactive `isSponsored: false` pour les événements dont le sponsoring est expiré
 - Protégé par le header `Authorization: Bearer <CRON_SECRET>`
 
-## Collection Firebase créée automatiquement
+## Structure Firebase (Firestore)
 
-La collection `sponsorships` est créée automatiquement dans Firestore avec :
-- `eventId`, `eventName`, `days`, `amount`, `stripe_session_id`
-- `customer_email`, `status`, `created_at`, `sponsored_until`
-
-## Firebase — champs mis à jour sur l'événement
-
-Collection `activities` (document `eventId`) :
+### Collection `activities` (mise à jour lors d'un paiement)
 
 | Champ | Type | Description |
 |---|---|---|
 | `isSponsored` | `boolean` | `true` si aujourd'hui est un jour sponsorisé |
-| `sponsored_until` | `Timestamp` | Fin du dernier jour sélectionné (23h59) |
-| `sponsored_days` | `string[]` | Liste des jours sponsorisés (format `YYYY-MM-DD`) |
+| `sponsored_until` | `Timestamp` | Fin du dernier jour sélectionné (23h59:59) |
+| `sponsored_days` | `string[]` | Jours sponsorisés au format `YYYY-MM-DD` |
 | `sponsored_at` | `Timestamp` | Date du paiement |
 | `stripe_session_id` | `string` | ID de la session Stripe |
+
+### Collection `sponsorships` (créée automatiquement)
+
+| Champ | Type | Description |
+|---|---|---|
+| `eventId` | `string` | Identifiant de l'événement |
+| `eventName` | `string` | Nom de l'événement |
+| `days` | `string[]` | Jours sponsorisés |
+| `amount` | `number` | Montant en centimes |
+| `stripe_session_id` | `string` | ID de la session Stripe |
+| `customer_email` | `string` | Email du client |
+| `orga_email` | `string` | Email de l'organisateur |
+| `status` | `string` | `'active'` |
+| `created_at` | `Timestamp` | Date de création |
+| `sponsored_until` | `Timestamp` | Fin du sponsoring |
+
+### Collection `instagram_booked_days` (calendrier Instagram)
+
+| Champ | Type | Description |
+|---|---|---|
+| `story` | `boolean` | Ce jour est réservé pour une story |
+| `post` | `boolean` | Ce jour est réservé pour un post |
+
+### Collection `instagram_sponsorships` (créée automatiquement)
+
+| Champ | Type | Description |
+|---|---|---|
+| `pack` | `string` | Identifiant du pack |
+| `packName` | `string` | Nom du pack |
+| `eventName` | `string` | Nom de l'événement |
+| `eventDate` | `string` | Date de l'événement |
+| `instaHandle` | `string` | Compte Instagram de l'organisateur |
+| `ticketLink` | `string` | Lien billetterie |
+| `brief` | `string` | Brief créatif |
+| `transferLink` | `string` | Lien de transfert des fichiers |
+| `customerEmail` | `string` | Email du client |
+| `storyDates` | `string[]` | Dates des stories (`YYYY-MM-DD`) |
+| `postDate` | `string` | Date du post (`YYYY-MM-DD`) |
+| `datesPublication` | `string[]` | Dates de publication |
+| `postFileUrl` | `string` | URL du visuel post |
+| `storyUrls` | `string[]` | URLs des visuels stories |
+| `amount` | `number` | Montant en centimes |
+| `stripe_session_id` | `string` | ID de la session Stripe |
+| `status` | `string` | `'confirmed'` |
+| `created_at` | `Timestamp` | Date de création |
+| `billingName` | `string` | Nom de facturation |
+| `billingAddress` | `string` | Adresse de facturation |
+| `billingZip` | `string` | Code postal |
+| `billingCity` | `string` | Ville |
+
+## Emails automatiques (Resend)
+
+À chaque paiement confirmé, deux emails sont envoyés :
+
+- **Email client** : confirmation avec récapitulatif du sponsoring, montant HT/TTC et lien vers la facture PDF Stripe
+- **Email interne** : notification à `hello@agendalgbt.com` avec les détails de la commande
+
+## Dépendances
+
+| Package | Version | Usage |
+|---|---|---|
+| `stripe` | `^14.0.0` | Paiement et gestion des webhooks |
+| `firebase-admin` | `^12.0.0` | Accès à Firestore |
+| `resend` | `^3.0.0` | Envoi des emails transactionnels |
